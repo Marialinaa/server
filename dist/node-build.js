@@ -42,7 +42,6 @@ const express = __importStar(require("express"));
 const app = (0, index_1.createServer)();
 const port = process.env.PORT || 3000;
 // In production, serve the built SPA files
-const __dirname = import.meta.dirname;
 const distPath = path_1.default.join(__dirname, "../spa");
 // Serve static files
 app.use(express.static(distPath));

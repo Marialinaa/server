@@ -23,7 +23,21 @@ __exportStar(require("./config/email"), exports);
 // Adicionar aliases/named-exports que o código mais antigo espera
 const emailTemplates_1 = __importDefault(require("./config/emailTemplates"));
 const email_1 = require("./config/email");
-const sendEmail = async (to, subject, html) => {
+const sendEmail = async (...args) => {
+    let to;
+    let subject;
+    let html;
+    if (args.length === 1 && typeof args[0] === 'object') {
+        const obj = args[0];
+        to = obj.to || obj.email;
+        subject = obj.subject;
+        html = obj.html || obj.text;
+    }
+    else {
+        [to, subject, html] = args;
+    }
+    if (!to || !subject)
+        return { success: false, error: 'destinatário ou assunto ausente' };
     try {
         const transporter = (0, email_1.createTransporter)();
         await transporter.sendMail({
@@ -32,30 +46,39 @@ const sendEmail = async (to, subject, html) => {
             subject,
             html,
         });
-        return true;
+        return { success: true };
     }
     catch (err) {
         console.error('Erro enviando email:', err);
-        return false;
+        return { success: false, error: err?.message || String(err) };
     }
 };
 exports.sendEmail = sendEmail;
-const notificarAdminNovoUsuario = async (nome, tipo_usuario) => {
-    const html = emailTemplates_1.default.solicitacaoAcesso(nome, tipo_usuario);
+const notificarAdminNovoUsuario = async (params) => {
+    const { nome, tipo_usuario } = params;
+    const html = emailTemplates_1.default.solicitacaoAcesso(nome || '', tipo_usuario || '');
     const adminEmail = process.env.ADMIN_EMAIL;
     if (!adminEmail)
-        return false;
+        return { success: false, error: 'ADMIN_EMAIL não configurado' };
     return (0, exports.sendEmail)(adminEmail, 'Nova solicitação de acesso', html);
 };
 exports.notificarAdminNovoUsuario = notificarAdminNovoUsuario;
-const notificarUsuarioAprovado = async (to, nome, tipo_usuario) => {
-    const html = emailTemplates_1.default.aprovacaoAcesso(nome, tipo_usuario);
-    return (0, exports.sendEmail)(to, 'Solicitação aprovada', html);
+const notificarUsuarioAprovado = async (params) => {
+    const { to, email, nome, tipo_usuario } = params;
+    const dest = to || email;
+    if (!dest)
+        return { success: false, error: 'email destinatário ausente' };
+    const html = emailTemplates_1.default.aprovacaoAcesso(nome || '', tipo_usuario || '');
+    return (0, exports.sendEmail)({ to: dest, subject: 'Solicitação aprovada', html });
 };
 exports.notificarUsuarioAprovado = notificarUsuarioAprovado;
-const notificarUsuarioRejeitado = async (to, nome) => {
-    const html = emailTemplates_1.default.rejeicaoAcesso(nome);
-    return (0, exports.sendEmail)(to, 'Solicitação não aprovada', html);
+const notificarUsuarioRejeitado = async (params) => {
+    const { to, email, nome } = params;
+    const dest = to || email;
+    if (!dest)
+        return { success: false, error: 'email destinatário ausente' };
+    const html = emailTemplates_1.default.rejeicaoAcesso(nome || '');
+    return (0, exports.sendEmail)({ to: dest, subject: 'Solicitação não aprovada', html });
 };
 exports.notificarUsuarioRejeitado = notificarUsuarioRejeitado;
 //# sourceMappingURL=email.js.map

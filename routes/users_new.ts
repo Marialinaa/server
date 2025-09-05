@@ -1,7 +1,7 @@
 import { RequestHandler } from "express";
 import { pool } from '../database';
 import { notificarUsuarioAprovado, notificarUsuarioRejeitado } from '../email';
-import type { User, ApiResponse } from "@shared/types";
+import type { User, ApiResponse } from "../shared/types";
 
 // GET /api/users - List all users
 export const handleListUsers: RequestHandler = async (req, res) => {

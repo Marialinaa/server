@@ -9,4 +9,5 @@ export type ApiResponse<T = any> = {
     message?: string;
     error?: string;
 };
+export {};
 //# sourceMappingURL=types.d.ts.map
