@@ -1,0 +1,1 @@
+//# sourceMappingURL=atribuicoes.d.ts.map
