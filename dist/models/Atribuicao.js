@@ -21,15 +21,15 @@ const AtribuicaoModel = {
         try {
             let sql = 'SELECT id, bolsista_id, responsavel_id, titulo, descricao, status, data_criacao, data_atualizacao, data_conclusao FROM atribuicoes WHERE 1=1';
             const params = [];
-            if (filters?.responsavel_id) {
+            if (filters === null || filters === void 0 ? void 0 : filters.responsavel_id) {
                 sql += ' AND responsavel_id = ?';
                 params.push(filters.responsavel_id);
             }
-            if (filters?.bolsista_id) {
+            if (filters === null || filters === void 0 ? void 0 : filters.bolsista_id) {
                 sql += ' AND bolsista_id = ?';
                 params.push(filters.bolsista_id);
             }
-            if (filters?.status) {
+            if (filters === null || filters === void 0 ? void 0 : filters.status) {
                 sql += ' AND status = ?';
                 params.push(filters.status);
             }

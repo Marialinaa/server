@@ -50,7 +50,7 @@ const sendEmail = async (...args) => {
     }
     catch (err) {
         console.error('Erro enviando email:', err);
-        return { success: false, error: err?.message || String(err) };
+        return { success: false, error: (err === null || err === void 0 ? void 0 : err.message) || String(err) };
     }
 };
 exports.sendEmail = sendEmail;

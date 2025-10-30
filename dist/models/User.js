@@ -93,7 +93,7 @@ const UserModel = {
     async create(data) {
         try {
             const fields = ['nome_completo', 'email', 'login', 'senha_hash', 'tipo_usuario', 'status'];
-            const values = fields.map(f => data[f] ?? null);
+            const values = fields.map(f => { var _a; return (_a = data[f]) !== null && _a !== void 0 ? _a : null; });
             const placeholders = fields.map(() => '?').join(',');
             const sql = `INSERT INTO usuarios (${fields.join(',')}) VALUES (${placeholders})`;
             const [result] = await database_1.default.execute(sql, values);
