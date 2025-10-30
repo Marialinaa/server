@@ -4,7 +4,7 @@ import authRoutes from './authRoutes';
 import usuariosRoutes from './usuariosRoutes';
 import atribuicoesRoutes from './atribuicoesRoutes';
 import horariosRoutes from './horariosRoutes';
-// import authMiddleware from '../middleware/authMiddleware';
+import './config/loadConfig';
 
 const router = express.Router();
 

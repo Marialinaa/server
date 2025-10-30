@@ -13,14 +13,32 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // CORS
-// Permite configurar através da variável de ambiente CORS_ORIGIN.
-// Pode ser um único origin ou múltiplos separados por vírgula.
-const configuredOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(',').map((s) => s.trim()).filter(Boolean)
-  : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:3001'];
+// Lê CORS_ORIGIN da env (lista separada por vírgula). Em dev garante localhost:5173
+const rawCors = process.env.CORS_ORIGIN || '';
+let configuredOrigins = rawCors
+  ? rawCors.split(',').map((s) => s.trim()).filter(Boolean)
+  : [];
+
+// Em modo de desenvolvimento, sempre inclua origins de localhost para facilitar testes
+if (process.env.NODE_ENV !== 'production') {
+  const devDefaults = ['http://localhost:5173', 'http://localhost:3000'];
+  devDefaults.forEach((o) => {
+    if (!configuredOrigins.includes(o)) configuredOrigins.push(o);
+  });
+}
+
+// Se nada estiver configurado, use localhost:5173 como fallback (cautela em produção)
+if (configuredOrigins.length === 0) configuredOrigins = ['http://localhost:5173'];
+
+console.log('🌐 CORS configured origins:', configuredOrigins);
 
 const corsOptions = {
-  origin: configuredOrigins,
+  origin: function (origin, callback) {
+    // Allow non-browser requests (like curl, mobile apps) when origin is undefined
+    if (!origin) return callback(null, true);
+    if (configuredOrigins.indexOf(origin) !== -1) return callback(null, true);
+    return callback(new Error('CORS not allowed'), false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

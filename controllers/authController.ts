@@ -1,283 +1,241 @@
+// ============================================
+// AUTH CONTROLLER - COMPATÍVEL COM MariaDB projeto_ufla
+// ============================================
+
 import { Request, Response } from 'express';
+import bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
-import * as bcrypt from 'bcrypt';
-import UserModel, { User } from '../models/User';
-// import { sendEmail } from '../config/email'; // Comentado temporariamente
-import templates from '../config/emailTemplates';
-import * as dotenv from 'dotenv';
+// @ts-ignore - db.js tem declaração de tipos em db.d.ts
+import { pool } from '../utils/db';
 
-dotenv.config();
+const JWT_SECRET = process.env.JWT_SECRET || 'seu-secret-aqui-MUDE-EM-PRODUCAO';
+const JWT_EXPIRES_IN = '24h';
 
-// Chave secreta para JWT
-const JWT_SECRET = process.env.JWT_SECRET || 'sua_chave_secreta_jwt';
-// Email do admin para notificações
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@example.com';
-
-export const register = async (req: Request, res: Response) => {
+// ============================================
+// LOGIN - Suporta email/login e senha
+// ============================================
+export async function login(req: Request, res: Response) {
   try {
-    console.log('📝 Iniciando registro de usuário:', req.body);
-    
-    const { nome, email, login, senha, tipo_usuario } = req.body;
-    
-    // Validar campos obrigatórios
-    if (!nome || !email || !login || !senha || !tipo_usuario) {
-      console.log('❌ Dados incompletos na requisição');
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Todos os campos são obrigatórios: nome, email, login, senha, tipo_usuario' 
+    const emailOrLogin = req.body.email || req.body.login;
+    const password = req.body.senha || req.body.password;
+    const tipoUsuario = req.body.tipo_usuario;
+
+    if (!emailOrLogin || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email/login e senha são obrigatórios'
       });
     }
-    
-    // Verificar se o email já está cadastrado
-    const existingUser = await UserModel.getByEmail(email);
-    if (existingUser) {
-      console.log('⚠️ Email já cadastrado:', email);
-      return res.status(409).json({ 
-        success: false, 
-        message: 'Este email já está cadastrado no sistema' 
+
+    // Buscar usuário por email ou login
+    let [rows]: any = await pool.execute(
+      'SELECT * FROM usuarios WHERE email = ? OR login = ? LIMIT 1',
+      [emailOrLogin, emailOrLogin]
+    );
+
+    const user = rows[0];
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Usuário ou senha inválidos'
       });
     }
-    
-    // Criar o novo usuário
-    const newUser = await UserModel.create({
-      nome_completo: nome,
-      email,
-      login,
-      senha_hash: senha,
-      tipo_usuario,
-      status: 'pendente'
+
+    // Validar tipo de usuário se informado
+    if (tipoUsuario && user.tipo_usuario !== tipoUsuario) {
+      return res.status(401).json({
+        success: false,
+        message: 'Tipo de usuário incorreto'
+      });
+    }
+
+    // Validar senha com bcrypt
+    const senhaValida = await bcrypt.compare(password, user.senha_hash);
+    if (!senhaValida) {
+      return res.status(401).json({
+        success: false,
+        message: 'Usuário ou senha inválidos'
+      });
+    }
+
+    // Gerar token JWT
+    const payload = {
+      id: user.id,
+      email: user.email,
+      tipo_usuario: user.tipo_usuario
+    };
+    const token = jwt.sign(payload, JWT_SECRET, {
+      expiresIn: JWT_EXPIRES_IN
     });
-    
-    // Enviar email de notificação para o admin
-    try {
-      // await sendEmail(
-      //   ADMIN_EMAIL,
-      //   'Nova solicitação de acesso - AURA-HUBB',
-      //   templates.solicitacaoAcesso(nome, tipo_usuario)
-      // );
-      console.log('📧 Email de notificação enviado para o admin (simulado)');
-    } catch (emailError) {
-      console.error('⚠️ Erro ao enviar email, mas o registro foi criado:', emailError);
+
+    // Atualizar último acesso
+    await pool.execute('UPDATE usuarios SET ultimo_acesso = NOW() WHERE id = ?', [user.id]);
+
+    delete user.senha_hash;
+
+    return res.json({
+      success: true,
+      message: 'Login realizado com sucesso',
+      token,
+      user
+    });
+
+  } catch (error: any) {
+    console.error('❌ Erro no login:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno no servidor'
+    });
+  }
+}
+
+// ============================================
+// REGISTER - Criar nova solicitação de acesso
+// ============================================
+export async function register(req: Request, res: Response) {
+  try {
+    const { nome, email, login, senha, tipo_usuario } = req.body;
+
+    if (!nome || !email || !login || !senha || !tipo_usuario) {
+      return res.status(400).json({
+        success: false,
+        message: 'Todos os campos são obrigatórios'
+      });
     }
-    
-    // Retornar sucesso
-    console.log('✅ Usuário registrado com sucesso:', { id: newUser.id, nome, email });
+
+    const tiposPermitidos = ['bolsista', 'responsavel'];
+    if (!tiposPermitidos.includes(tipo_usuario)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tipo de usuário inválido'
+      });
+    }
+
+    // Verificar se já existe usuário com mesmo email/login
+    const [existingUser]: any = await pool.execute(
+      'SELECT id FROM usuarios WHERE email = ? OR login = ? LIMIT 1',
+      [email, login]
+    );
+    if (existingUser.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'Email ou login já cadastrado no sistema'
+      });
+    }
+
+    // Verificar se já há solicitação pendente
+    const [existingSolicitacao]: any = await pool.execute(
+      'SELECT id FROM solicitacoes WHERE email = ? OR login = ? AND status = "pendente" LIMIT 1',
+      [email, login]
+    );
+    if (existingSolicitacao.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'Já existe uma solicitação pendente para este email/login'
+      });
+    }
+
+    // Criar hash da senha
+    const senha_hash = await bcrypt.hash(senha, 10);
+
+    // Inserir nova solicitação
+    const [result]: any = await pool.execute(
+      'INSERT INTO solicitacoes (nome_completo, email, senha_hash, tipo_usuario, login, status) VALUES (?, ?, ?, ?, ?, ?)',
+      [nome, email, senha_hash, tipo_usuario, login, 'pendente']
+    );
+
     return res.status(201).json({
       success: true,
-      message: 'Usuário registrado com sucesso. Aguardando aprovação do administrador.',
+      message: 'Solicitação enviada com sucesso! Aguarde aprovação do administrador.',
       data: {
-        id: newUser.id,
+        id: result.insertId,
         nome,
         email,
         tipo_usuario,
         status: 'pendente'
       }
     });
+
   } catch (error: any) {
     console.error('❌ Erro ao registrar usuário:', error);
     return res.status(500).json({
       success: false,
-      message: 'Erro ao processar o registro',
-      error: error.message
+      message: 'Erro ao processar solicitação'
     });
   }
-};
+}
 
-export const login = async (req: Request, res: Response) => {
+// ============================================
+// APPROVE USER - Aprovar solicitação pendente
+// ============================================
+export async function approveUser(req: Request, res: Response) {
   try {
-    console.log('🔑 Tentativa de login:', req.body);
-    
-    const { email, password, tipo_usuario } = req.body;
-    
-    // Validar campos obrigatórios
-    if (!email || !password) {
-      console.log('❌ Email ou senha não fornecidos');
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Email e senha são obrigatórios' 
-      });
-    }
-    
-    // Buscar usuário pelo email
-    const user = await UserModel.getByEmail(email);
-    if (!user) {
-      console.log('❌ Usuário não encontrado:', email);
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Usuário não encontrado' 
-      });
-    }
-    
-    // Verificar se o tipo de usuário corresponde (se fornecido)
-    if (tipo_usuario && user.tipo_usuario !== tipo_usuario) {
-      console.log(`❌ Tipo de usuário incorreto. Esperado: ${tipo_usuario}, Atual: ${user.tipo_usuario}`);
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Tipo de usuário incorreto' 
-      });
-    }
-    
-    // Verificar status do usuário
-    if (user.status !== 'aprovado' && user.status !== 'liberado') {
-      console.log(`❌ Usuário com status "${user.status}" tentando login`);
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Sua solicitação de acesso ainda está pendente de aprovação' 
-      });
-    }
-    
-    // Validar senha
-    const isValidPassword = await UserModel.validatePassword(user, password);
-    if (!isValidPassword) {
-      console.log('❌ Senha incorreta para usuário:', email);
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Senha incorreta' 
-      });
-    }
-    
-    // Gerar token JWT
-    const token = jwt.sign(
-      { id: user.id, tipo_usuario: user.tipo_usuario },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-    
-    // Retornar usuário e token
-    console.log('✅ Login bem-sucedido:', { id: user.id, nome: user.nome_completo, tipo: user.tipo_usuario });
-    return res.json({
-      success: true,
-      token,
-      user: {
-        id: user.id,
-        nome: user.nome_completo,
-        email: user.email,
-        tipo_usuario: user.tipo_usuario,
-        nomeCompleto: user.nome_completo
-      },
-      message: 'Login realizado com sucesso'
-    });
-  } catch (error: any) {
-    console.error('❌ Erro durante login:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao processar o login',
-      error: error.message
-    });
-  }
-};
-
-export const approveUser = async (req: Request, res: Response) => {
-  try {
-    console.log('👍 Aprovando usuário:', req.body);
-    
     const { userId } = req.body;
-    
     if (!userId) {
-      console.log('❌ ID de usuário não fornecido');
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID de usuário é obrigatório' 
-      });
+      return res.status(400).json({ success: false, message: 'ID da solicitação é obrigatório' });
     }
-    
-    // Buscar usuário
-    const user = await UserModel.getById(userId);
-    if (!user) {
-      console.log('❌ Usuário não encontrado:', userId);
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Usuário não encontrado' 
-      });
+
+    // Buscar solicitação
+    const [rows]: any = await pool.execute('SELECT * FROM solicitacoes WHERE id = ? LIMIT 1', [userId]);
+    const solicitacao = rows[0];
+
+    if (!solicitacao) {
+      return res.status(404).json({ success: false, message: 'Solicitação não encontrada' });
     }
-    
-    // Atualizar status para aprovado
-    await UserModel.updateStatus(userId, 'aprovado');
-    
-    // Enviar email de aprovação
-    try {
-      // await sendEmail(
-      //   user.email,
-      //   'Solicitação Aprovada - AURA-HUBB',
-      //   templates.aprovacaoAcesso(user.nome_completo, user.tipo_usuario)
-      // );
-      console.log('📧 Email de aprovação enviado para:', user.email, '(simulado)');
-    } catch (emailError) {
-      console.error('⚠️ Erro ao enviar email de aprovação:', emailError);
-    }
-    
-    console.log('✅ Usuário aprovado com sucesso:', userId);
+
+    // Inserir usuário aprovado em `usuarios`
+    await pool.execute(
+      `INSERT INTO usuarios (nome_completo, email, senha_hash, tipo_usuario, login, data_criacao)
+       VALUES (?, ?, ?, ?, ?, NOW())`,
+      [solicitacao.nome_completo, solicitacao.email, solicitacao.senha_hash, solicitacao.tipo_usuario, solicitacao.login]
+    );
+
+    // Atualizar status da solicitação
+    await pool.execute('UPDATE solicitacoes SET status = "aprovada" WHERE id = ?', [userId]);
+
     return res.json({
       success: true,
-      message: 'Usuário aprovado com sucesso'
+      message: 'Usuário aprovado e movido para tabela de usuários'
     });
+
   } catch (error: any) {
     console.error('❌ Erro ao aprovar usuário:', error);
     return res.status(500).json({
       success: false,
-      message: 'Erro ao aprovar usuário',
-      error: error.message
+      message: 'Erro ao aprovar solicitação'
     });
   }
-};
+}
 
-export const rejectUser = async (req: Request, res: Response) => {
+// ============================================
+// REJECT USER - Rejeitar solicitação
+// ============================================
+export async function rejectUser(req: Request, res: Response) {
   try {
-    console.log('👎 Rejeitando usuário:', req.body);
-    
-    const { userId } = req.body;
-    
+    const { userId, motivo } = req.body;
     if (!userId) {
-      console.log('❌ ID de usuário não fornecido');
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID de usuário é obrigatório' 
-      });
+      return res.status(400).json({ success: false, message: 'ID da solicitação é obrigatório' });
     }
-    
-    // Buscar usuário
-    const user = await UserModel.getById(userId);
-    if (!user) {
-      console.log('❌ Usuário não encontrado:', userId);
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Usuário não encontrado' 
-      });
+
+    const [rows]: any = await pool.execute('SELECT * FROM solicitacoes WHERE id = ? LIMIT 1', [userId]);
+    const solicitacao = rows[0];
+    if (!solicitacao) {
+      return res.status(404).json({ success: false, message: 'Solicitação não encontrada' });
     }
-    
-    // Atualizar status para rejeitado
-    await UserModel.updateStatus(userId, 'rejeitado');
-    
-    // Enviar email de rejeição
-    try {
-      // await sendEmail(
-      //   user.email,
-      //   'Solicitação Não Aprovada - AURA-HUBB',
-      //   templates.rejeicaoAcesso(user.nome_completo)
-      // );
-      console.log('📧 Email de rejeição enviado para:', user.email, '(simulado)');
-    } catch (emailError) {
-      console.error('⚠️ Erro ao enviar email de rejeição:', emailError);
-    }
-    
-    console.log('✅ Usuário rejeitado com sucesso:', userId);
+
+    await pool.execute('UPDATE solicitacoes SET status = "rejeitada" WHERE id = ?', [userId]);
+
     return res.json({
       success: true,
-      message: 'Usuário rejeitado com sucesso'
+      message: 'Solicitação rejeitada com sucesso',
+      motivo: motivo || null
     });
+
   } catch (error: any) {
     console.error('❌ Erro ao rejeitar usuário:', error);
     return res.status(500).json({
       success: false,
-      message: 'Erro ao rejeitar usuário',
-      error: error.message
+      message: 'Erro ao rejeitar solicitação'
     });
   }
-};
-
-export default {
-  register,
-  login,
-  approveUser,
-  rejectUser
-};
+}

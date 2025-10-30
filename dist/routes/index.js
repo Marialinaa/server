@@ -9,7 +9,7 @@ const authRoutes_1 = __importDefault(require("./authRoutes"));
 const usuariosRoutes_1 = __importDefault(require("./usuariosRoutes"));
 const atribuicoesRoutes_1 = __importDefault(require("./atribuicoesRoutes"));
 const horariosRoutes_1 = __importDefault(require("./horariosRoutes"));
-// import authMiddleware from '../middleware/authMiddleware';
+require("./config/loadConfig");
 const router = express_1.default.Router();
 // Rota de teste simples
 router.get('/test', (req, res) => {

@@ -51,7 +51,9 @@ if ((!dbConfig.host || !dbConfig.user || !dbConfig.database) && process.env.MYSQ
 
 // Último fallback: usar valores padrão locais
 dbConfig = {
-  host: dbConfig.host || 'localhost',
+  // usar IPv4 por padrão para evitar resolução para ::1 (IPv6) em ambientes onde o MySQL
+  // está escutando apenas em 127.0.0.1 ou em outra interface
+  host: dbConfig.host || '127.0.0.1',
   port: dbConfig.port || 3306,
   user: dbConfig.user || 'root',
   password: dbConfig.password || '',
@@ -65,8 +67,16 @@ export const createConnection = async () => {
     console.log('✅ Conexão com banco de dados estabelecida');
     return connection;
   } catch (error) {
+    // Logue informações de diagnóstico sem exibir a senha
+    const safe = {
+      host: dbConfig.host,
+      port: dbConfig.port,
+      user: dbConfig.user,
+      database: dbConfig.database,
+    };
     console.error('❌ Erro ao conectar com o banco:', error);
-    console.error('🔧 Verifique as configurações em server/config/database.ts');
+    console.error('🔧 Config usada:', safe);
+    console.error('🔧 Verifique as configurações em server/config/database.ts e variáveis de ambiente DB_* ou MYSQL_*');
     throw error;
   }
 };
@@ -79,7 +89,8 @@ export const createPool = () => {
       connectionLimit: 10,
       queueLimit: 0
     });
-    console.log('✅ Pool de conexões criado com sucesso');
+  console.log('✅ Pool de conexões criado com sucesso');
+  console.log(`🔍 db host=${dbConfig.host} port=${dbConfig.port} user=${dbConfig.user} database=${dbConfig.database}`);
     return pool;
   } catch (error) {
     console.error('❌ Erro ao criar pool de conexões:', error);
