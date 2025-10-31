@@ -4,7 +4,6 @@ import authRoutes from './authRoutes';
 import usuariosRoutes from './usuariosRoutes';
 import atribuicoesRoutes from './atribuicoesRoutes';
 import horariosRoutes from './horariosRoutes';
-import './config/loadConfig';
 
 const router = express.Router();
 
