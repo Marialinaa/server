@@ -45,10 +45,26 @@ exports.approveUser = approveUser;
 exports.rejectUser = rejectUser;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jwt = __importStar(require("jsonwebtoken"));
-// @ts-ignore - db.js tem declaração de tipos em db.d.ts
-const db_1 = require("../utils/db");
+const db_1 = __importDefault(require("../utils/db"));
 const JWT_SECRET = process.env.JWT_SECRET || 'seu-secret-aqui-MUDE-EM-PRODUCAO';
 const JWT_EXPIRES_IN = '24h';
+// ============================================
+// HELPER: Tratamento centralizado de erros
+// ============================================
+function handleDatabaseError(error, res) {
+    if (error.message && error.message.includes('pool not initialized')) {
+        return res.status(503).json({
+            success: false,
+            error: 'Serviço temporariamente indisponível',
+            message: 'Banco de dados está inicializando, por favor tente novamente em alguns segundos'
+        });
+    }
+    console.error('Database error:', error);
+    return res.status(500).json({
+        success: false,
+        error: 'Erro interno do servidor'
+    });
+}
 // ============================================
 // LOGIN - Suporta email/login e senha
 // ============================================
@@ -63,8 +79,10 @@ async function login(req, res) {
                 message: 'Email/login e senha são obrigatórios'
             });
         }
+        // ✅ Obter pool de forma segura
+        const pool = await db_1.default.getInstance();
         // Buscar usuário por email ou login
-        let [rows] = await db_1.pool.execute('SELECT * FROM usuarios WHERE email = ? OR login = ? LIMIT 1', [emailOrLogin, emailOrLogin]);
+        let [rows] = await pool.execute('SELECT * FROM usuarios WHERE email = ? OR login = ? LIMIT 1', [emailOrLogin, emailOrLogin]);
         const user = rows[0];
         if (!user) {
             return res.status(401).json({
@@ -97,7 +115,7 @@ async function login(req, res) {
             expiresIn: JWT_EXPIRES_IN
         });
         // Atualizar último acesso
-        await db_1.pool.execute('UPDATE usuarios SET ultimo_acesso = NOW() WHERE id = ?', [user.id]);
+        await pool.execute('UPDATE usuarios SET ultimo_acesso = NOW() WHERE id = ?', [user.id]);
         delete user.senha_hash;
         return res.json({
             success: true,
@@ -108,10 +126,7 @@ async function login(req, res) {
     }
     catch (error) {
         console.error('❌ Erro no login:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Erro interno no servidor'
-        });
+        return handleDatabaseError(error, res);
     }
 }
 // ============================================
@@ -133,8 +148,10 @@ async function register(req, res) {
                 message: 'Tipo de usuário inválido'
             });
         }
+        // ✅ Obter pool de forma segura
+        const pool = await db_1.default.getInstance();
         // Verificar se já existe usuário com mesmo email/login
-        const [existingUser] = await db_1.pool.execute('SELECT id FROM usuarios WHERE email = ? OR login = ? LIMIT 1', [email, login]);
+        const [existingUser] = await pool.execute('SELECT id FROM usuarios WHERE email = ? OR login = ? LIMIT 1', [email, login]);
         if (existingUser.length > 0) {
             return res.status(409).json({
                 success: false,
@@ -142,7 +159,7 @@ async function register(req, res) {
             });
         }
         // Verificar se já há solicitação pendente
-        const [existingSolicitacao] = await db_1.pool.execute('SELECT id FROM solicitacoes WHERE email = ? OR login = ? AND status = "pendente" LIMIT 1', [email, login]);
+        const [existingSolicitacao] = await pool.execute('SELECT id FROM solicitacoes WHERE email = ? OR login = ? AND status = "pendente" LIMIT 1', [email, login]);
         if (existingSolicitacao.length > 0) {
             return res.status(409).json({
                 success: false,
@@ -152,7 +169,7 @@ async function register(req, res) {
         // Criar hash da senha
         const senha_hash = await bcrypt_1.default.hash(senha, 10);
         // Inserir nova solicitação
-        const [result] = await db_1.pool.execute('INSERT INTO solicitacoes (nome_completo, email, senha_hash, tipo_usuario, login, status) VALUES (?, ?, ?, ?, ?, ?)', [nome, email, senha_hash, tipo_usuario, login, 'pendente']);
+        const [result] = await pool.execute('INSERT INTO solicitacoes (nome_completo, email, senha_hash, tipo_usuario, login, status) VALUES (?, ?, ?, ?, ?, ?)', [nome, email, senha_hash, tipo_usuario, login, 'pendente']);
         return res.status(201).json({
             success: true,
             message: 'Solicitação enviada com sucesso! Aguarde aprovação do administrador.',
@@ -167,10 +184,7 @@ async function register(req, res) {
     }
     catch (error) {
         console.error('❌ Erro ao registrar usuário:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Erro ao processar solicitação'
-        });
+        return handleDatabaseError(error, res);
     }
 }
 // ============================================
@@ -182,17 +196,19 @@ async function approveUser(req, res) {
         if (!userId) {
             return res.status(400).json({ success: false, message: 'ID da solicitação é obrigatório' });
         }
+        // ✅ Obter pool de forma segura
+        const pool = await db_1.default.getInstance();
         // Buscar solicitação
-        const [rows] = await db_1.pool.execute('SELECT * FROM solicitacoes WHERE id = ? LIMIT 1', [userId]);
+        const [rows] = await pool.execute('SELECT * FROM solicitacoes WHERE id = ? LIMIT 1', [userId]);
         const solicitacao = rows[0];
         if (!solicitacao) {
             return res.status(404).json({ success: false, message: 'Solicitação não encontrada' });
         }
         // Inserir usuário aprovado em `usuarios`
-        await db_1.pool.execute(`INSERT INTO usuarios (nome_completo, email, senha_hash, tipo_usuario, login, data_criacao)
+        await pool.execute(`INSERT INTO usuarios (nome_completo, email, senha_hash, tipo_usuario, login, data_criacao)
        VALUES (?, ?, ?, ?, ?, NOW())`, [solicitacao.nome_completo, solicitacao.email, solicitacao.senha_hash, solicitacao.tipo_usuario, solicitacao.login]);
         // Atualizar status da solicitação
-        await db_1.pool.execute('UPDATE solicitacoes SET status = "aprovada" WHERE id = ?', [userId]);
+        await pool.execute('UPDATE solicitacoes SET status = "aprovada" WHERE id = ?', [userId]);
         return res.json({
             success: true,
             message: 'Usuário aprovado e movido para tabela de usuários'
@@ -200,10 +216,7 @@ async function approveUser(req, res) {
     }
     catch (error) {
         console.error('❌ Erro ao aprovar usuário:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Erro ao aprovar solicitação'
-        });
+        return handleDatabaseError(error, res);
     }
 }
 // ============================================
@@ -215,12 +228,14 @@ async function rejectUser(req, res) {
         if (!userId) {
             return res.status(400).json({ success: false, message: 'ID da solicitação é obrigatório' });
         }
-        const [rows] = await db_1.pool.execute('SELECT * FROM solicitacoes WHERE id = ? LIMIT 1', [userId]);
+        // ✅ Obter pool de forma segura
+        const pool = await db_1.default.getInstance();
+        const [rows] = await pool.execute('SELECT * FROM solicitacoes WHERE id = ? LIMIT 1', [userId]);
         const solicitacao = rows[0];
         if (!solicitacao) {
             return res.status(404).json({ success: false, message: 'Solicitação não encontrada' });
         }
-        await db_1.pool.execute('UPDATE solicitacoes SET status = "rejeitada" WHERE id = ?', [userId]);
+        await pool.execute('UPDATE solicitacoes SET status = "rejeitada" WHERE id = ?', [userId]);
         return res.json({
             success: true,
             message: 'Solicitação rejeitada com sucesso',
@@ -229,10 +244,7 @@ async function rejectUser(req, res) {
     }
     catch (error) {
         console.error('❌ Erro ao rejeitar usuário:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Erro ao rejeitar solicitação'
-        });
+        return handleDatabaseError(error, res);
     }
 }
 //# sourceMappingURL=authController.js.map

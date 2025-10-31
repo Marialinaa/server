@@ -1,15 +1,36 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleGetUser = exports.handleUpdateUserStatus = exports.handleListUsers = void 0;
-const database_1 = require("../database");
+const database_1 = __importDefault(require("../database"));
 const email_1 = require("../email");
+// ============================================
+// HELPER: Tratamento centralizado de erros
+// ============================================
+function handleDatabaseError(error, res) {
+    if (error.message && error.message.includes('pool not initialized')) {
+        return res.status(503).json({
+            success: false,
+            message: 'Serviço temporariamente indisponível'
+        });
+    }
+    console.error('Database error:', error);
+    return res.status(500).json({
+        success: false,
+        message: 'Erro interno do servidor'
+    });
+}
 // GET /api/users - List all users from separate tables
-const handleListUsers = async (req, res) => {
+const handleListUsers = async (_req, res) => {
     try {
         console.log("🔍 Buscando usuários das tabelas separadas...");
+        // ✅ Obter pool de forma segura
+        const pool = await database_1.default.getInstance();
         const usuarios = [];
         // Buscar responsáveis
-        const [responsaveisRows] = await database_1.pool.execute(`SELECT 
+        const [responsaveisRows] = await pool.execute(`SELECT 
         id, 
         nome as nomeCompleto, 
         email, 
@@ -27,7 +48,7 @@ const handleListUsers = async (req, res) => {
         const responsaveis = responsaveisRows;
         usuarios.push(...responsaveis);
         // Buscar bolsistas
-        const [bolsistasRows] = await database_1.pool.execute(`SELECT 
+        const [bolsistasRows] = await pool.execute(`SELECT 
         matricula as id, 
         nome as nomeCompleto, 
         email, 
@@ -57,14 +78,11 @@ const handleListUsers = async (req, res) => {
             message: "Usuários carregados com sucesso",
             data: usuarios,
         };
-        res.json(response);
+        return res.json(response);
     }
     catch (error) {
         console.error("❌ Erro ao buscar usuários:", error);
-        res.status(500).json({
-            success: false,
-            message: "Erro ao conectar com o banco de dados",
-        });
+        return handleDatabaseError(error, res);
     }
 };
 exports.handleListUsers = handleListUsers;
@@ -95,22 +113,24 @@ const handleUpdateUserStatus = async (req, res) => {
         }
         let user = null;
         let tipoUsuario = '';
+        // ✅ Obter pool de forma segura
+        const pool = await database_1.default.getInstance();
         // Tentar encontrar o usuário na tabela de responsáveis
-        const [responsavelRows] = await database_1.pool.execute('SELECT id, nome, email, login, status FROM responsaveis WHERE id = ?', [id]);
+        const [responsavelRows] = await pool.execute('SELECT id, nome, email, login, status FROM responsaveis WHERE id = ?', [id]);
         if (responsavelRows.length > 0) {
             user = responsavelRows[0];
             tipoUsuario = 'responsavel';
             // Atualizar status na tabela responsaveis
-            await database_1.pool.execute('UPDATE responsaveis SET status = ?, data_atualizacao = CURRENT_TIMESTAMP WHERE id = ?', [newStatus, id]);
+            await pool.execute('UPDATE responsaveis SET status = ?, data_atualizacao = CURRENT_TIMESTAMP WHERE id = ?', [newStatus, id]);
         }
         else {
             // Tentar encontrar o usuário na tabela de bolsistas (usar matricula como ID)
-            const [bolsistaRows] = await database_1.pool.execute('SELECT matricula as id, nome, email, login, status FROM bolsistas WHERE matricula = ?', [id]);
+            const [bolsistaRows] = await pool.execute('SELECT matricula as id, nome, email, login, status FROM bolsistas WHERE matricula = ?', [id]);
             if (bolsistaRows.length > 0) {
                 user = bolsistaRows[0];
                 tipoUsuario = 'bolsista';
                 // Atualizar status na tabela bolsistas
-                await database_1.pool.execute('UPDATE bolsistas SET status = ?, data_atualizacao = CURRENT_TIMESTAMP WHERE matricula = ?', [newStatus, id]);
+                await pool.execute('UPDATE bolsistas SET status = ?, data_atualizacao = CURRENT_TIMESTAMP WHERE matricula = ?', [newStatus, id]);
             }
         }
         if (!user) {
@@ -146,7 +166,7 @@ const handleUpdateUserStatus = async (req, res) => {
         // Buscar dados atualizados do usuário
         let updatedUser;
         if (tipoUsuario === 'responsavel') {
-            const [updatedRows] = await database_1.pool.execute(`SELECT 
+            const [updatedRows] = await pool.execute(`SELECT 
           id, 
           nome as nomeCompleto, 
           email, 
@@ -160,7 +180,7 @@ const handleUpdateUserStatus = async (req, res) => {
             updatedUser = updatedRows[0];
         }
         else {
-            const [updatedRows] = await database_1.pool.execute(`SELECT 
+            const [updatedRows] = await pool.execute(`SELECT 
           matricula as id, 
           nome as nomeCompleto, 
           email, 
@@ -179,14 +199,11 @@ const handleUpdateUserStatus = async (req, res) => {
             message: `${tipoUsuario === 'responsavel' ? 'Responsável' : 'Bolsista'} ${newStatus} com sucesso! Email de notificação enviado.`,
             data: updatedUser,
         };
-        res.json(response);
+        return res.json(response);
     }
     catch (error) {
         console.error("❌ Erro ao atualizar status:", error);
-        res.status(500).json({
-            success: false,
-            message: "Erro ao atualizar status do usuário",
-        });
+        return handleDatabaseError(error, res);
     }
 };
 exports.handleUpdateUserStatus = handleUpdateUserStatus;
@@ -195,7 +212,9 @@ const handleGetUser = async (req, res) => {
     try {
         const { id } = req.params;
         console.log("🔍 Buscando usuário específico:", id);
-        const [rows] = await database_1.pool.execute(`SELECT 
+        // ✅ Obter pool de forma segura
+        const pool = await database_1.default.getInstance();
+        const [rows] = await pool.execute(`SELECT 
         id, 
         nome as nomeCompleto, 
         email, 
@@ -218,14 +237,11 @@ const handleGetUser = async (req, res) => {
             message: "Usuário encontrado",
             data: user,
         };
-        res.json(response);
+        return res.json(response);
     }
     catch (error) {
         console.error("❌ Erro ao buscar usuário:", error);
-        res.status(500).json({
-            success: false,
-            message: "Erro interno do servidor",
-        });
+        return handleDatabaseError(error, res);
     }
 };
 exports.handleGetUser = handleGetUser;

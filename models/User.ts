@@ -1,4 +1,4 @@
-import pool from '../config/database';
+import DatabaseConnection from '../utils/db';
 
 // Normaliza diferentes nomes de colunas entre esquemas (ex.: nome_completo vs nome)
 const normalizeUserRow = (row: any) => {
@@ -40,6 +40,9 @@ const UserModel = {
   // Se status === 'pendente' e quiser solicitações, consulta tabela solicitacoes
   async list(filters: Record<string, any> = {}) {
     try {
+      // ✅ Obter pool de forma segura
+      const pool = await DatabaseConnection.getInstance();
+
       // Caso especial: listar solicitações pendentes (tolerante a esquema)
       if (filters.status === 'pendente') {
         const sql = 'SELECT * FROM solicitacoes WHERE status = ? ORDER BY data_solicitacao DESC';
@@ -76,6 +79,9 @@ const UserModel = {
 
   async getById(id: number) {
     try {
+      // ✅ Obter pool de forma segura
+      const pool = await DatabaseConnection.getInstance();
+
       const [rows]: any = await pool.execute('SELECT * FROM usuarios WHERE id = ? LIMIT 1', [id]);
       return rows && rows.length ? normalizeUserRow(rows[0]) : null;
     } catch (error) {
@@ -86,6 +92,9 @@ const UserModel = {
 
   async getByEmail(email: string) {
     try {
+      // ✅ Obter pool de forma segura
+      const pool = await DatabaseConnection.getInstance();
+
       const [rowsUsu]: any = await pool.execute('SELECT * FROM usuarios WHERE email = ? LIMIT 1', [email]);
       if (rowsUsu && rowsUsu.length) return normalizeUserRow(rowsUsu[0]);
 
@@ -107,6 +116,9 @@ const UserModel = {
 
   async create(data: UserPayload) {
     try {
+      // ✅ Obter pool de forma segura
+      const pool = await DatabaseConnection.getInstance();
+
       const fields = ['nome_completo','email','login','senha_hash','tipo_usuario','status'];
       const values = fields.map(f => (data as any)[f] ?? null);
       const placeholders = fields.map(() => '?').join(',');
@@ -134,6 +146,9 @@ const UserModel = {
 
   async updateStatus(userId: number, status: string) {
     try {
+      // ✅ Obter pool de forma segura
+      const pool = await DatabaseConnection.getInstance();
+
       const sql = 'UPDATE usuarios SET status = ? WHERE id = ?';
       const [result]: any = await pool.execute(sql, [status, userId]);
       return (result && (result.affectedRows || result.affected_rows)) ? true : false;

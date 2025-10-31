@@ -1,4 +1,4 @@
-import pool from '../config/database';
+import DatabaseConnection from '../utils/db';
 
 export interface Horario {
   id?: number;
@@ -13,6 +13,9 @@ const HorarioModel = {
   // Registrar entrada em `registros_entrada` (usuario_id => bolsista_id, data_entrada => data_registro)
   async registrarEntrada(h: Horario) {
     try {
+      // ✅ Obter pool de forma segura
+      const pool = await DatabaseConnection.getInstance();
+
   const sql = 'INSERT INTO registros_entrada (usuario_id, data_entrada, hora_entrada) VALUES (?, ?, ?)';
   const params = [h.bolsista_id, h.data_registro, h.hora_entrada];
       const [result]: any = await pool.execute(sql, params);
@@ -24,8 +27,11 @@ const HorarioModel = {
   },
 
   // Registrar saída atualizando registros_entrada.hora_saida
-  async registrarSaida(bolsista_id: number, data_registro: string, hora_saida: string, observacoes?: string) {
+  async registrarSaida(bolsista_id: number, data_registro: string, hora_saida: string, _observacoes?: string) {
     try {
+      // ✅ Obter pool de forma segura
+      const pool = await DatabaseConnection.getInstance();
+
   const sql = 'UPDATE registros_entrada SET hora_saida = ? WHERE usuario_id = ? AND data_entrada = ? AND (hora_saida IS NULL OR hora_saida = "")';
       const [result]: any = await pool.execute(sql, [hora_saida, bolsista_id, data_registro]);
       if ((result && (result.affectedRows || result.affected_rows) && (result.affectedRows || result.affected_rows) > 0)) {
@@ -41,6 +47,9 @@ const HorarioModel = {
 
   async listarPorBolsista(bolsista_id: number, data_inicio?: string, data_fim?: string) {
     try {
+      // ✅ Obter pool de forma segura
+      const pool = await DatabaseConnection.getInstance();
+
       const params: any[] = [bolsista_id];
       let sql = 'SELECT id, usuario_id as bolsista_id, data_entrada as data_registro, hora_entrada, hora_saida FROM registros_entrada WHERE usuario_id = ?';
       if (data_inicio) {
@@ -60,6 +69,9 @@ const HorarioModel = {
 
   async buscarHorarioHoje(bolsista_id: number) {
     try {
+      // ✅ Obter pool de forma segura
+      const pool = await DatabaseConnection.getInstance();
+
       const dataHoje = new Date().toISOString().split('T')[0];
       const [rows]: any = await pool.execute('SELECT id, usuario_id as bolsista_id, data_entrada as data_registro, hora_entrada, hora_saida FROM registros_entrada WHERE usuario_id = ? AND data_entrada = ? ORDER BY id DESC LIMIT 1', [bolsista_id, dataHoje]);
       return rows && rows[0] ? rows[0] : null;

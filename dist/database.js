@@ -1,4 +1,7 @@
 "use strict";
+// ============================================
+// RE-EXPORTS PARA COMPATIBILIDADE
+// ============================================
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -10,38 +13,29 @@ var __createBinding = (this && this.__createBinding) || (Object.create ? (functi
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
 }));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
 var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.db = exports.pool = void 0;
-// Re-export das funções de database que estão em server/config/database.ts
+exports.db = exports.closePool = exports.checkHealth = exports.getPool = exports.pool = exports.DatabaseConnection = void 0;
+// Re-export do sistema novo (utils/db.ts) - PREFERENCIAL
+var db_1 = require("./utils/db");
+Object.defineProperty(exports, "DatabaseConnection", { enumerable: true, get: function () { return __importDefault(db_1).default; } });
+Object.defineProperty(exports, "pool", { enumerable: true, get: function () { return db_1.pool; } });
+Object.defineProperty(exports, "getPool", { enumerable: true, get: function () { return db_1.getPool; } });
+Object.defineProperty(exports, "checkHealth", { enumerable: true, get: function () { return db_1.checkHealth; } });
+Object.defineProperty(exports, "closePool", { enumerable: true, get: function () { return db_1.closePool; } });
+// Re-export do sistema antigo (config/database.ts) - LEGADO
 __exportStar(require("./config/database"), exports);
-const database_1 = __importStar(require("./config/database"));
+var database_1 = require("./config/database");
 Object.defineProperty(exports, "db", { enumerable: true, get: function () { return database_1.dbConfig; } });
-// Named export 'pool' esperado por algumas rotas
-exports.pool = database_1.default;
-exports.default = database_1.default;
+// Default export aponta para o sistema novo
+const db_2 = __importDefault(require("./utils/db"));
+exports.default = db_2.default;
+// NOTA: Código novo deve usar:
+// import DatabaseConnection from '../database';
+// const pool = await DatabaseConnection.getInstance();
 //# sourceMappingURL=database.js.map

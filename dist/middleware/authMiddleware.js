@@ -48,6 +48,9 @@ const authMiddleware = (req, res, next) => {
             console.log('🔑 Token validado para usuário:', req.user.id);
             return next();
         });
+        // Return implícito para satisfazer TypeScript
+        // A verificação do JWT é assíncrona e chama o callback
+        return;
     }
     catch (error) {
         console.error('❌ Erro no middleware de autenticação:', error);

@@ -1,12 +1,31 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleDeleteAtribuicao = exports.handleUpdateAtribuicao = exports.handleCreateAtribuicao = exports.handleListAtribuicoes = void 0;
-const database_1 = require("../database");
+const db_1 = __importDefault(require("../utils/db"));
+// ✅ Helper para tratamento centralizado de erros de banco
+function handleDatabaseError(error, res) {
+    var _a;
+    console.error("💥 Erro de banco de dados:", error.message);
+    const isDatabaseError = ((_a = error.code) === null || _a === void 0 ? void 0 : _a.startsWith('ER_')) ||
+        error.code === 'ECONNREFUSED' ||
+        error.errno !== undefined;
+    return res.status(500).json({
+        success: false,
+        message: isDatabaseError
+            ? "Erro ao conectar com o banco de dados"
+            : "Erro interno do servidor",
+    });
+}
 // GET /api/atribuicoes - Listar todas as atribuições
-const handleListAtribuicoes = async (req, res) => {
+const handleListAtribuicoes = async (_req, res) => {
     try {
         console.log("📋 Listando atribuições...");
-        const [rows] = await database_1.pool.execute(`
+        // ✅ Obter pool de forma segura
+        const pool = await db_1.default.getInstance();
+        const [rows] = await pool.execute(`
       SELECT 
         a.id,
         a.responsavel_id as responsavelId,
@@ -24,7 +43,7 @@ const handleListAtribuicoes = async (req, res) => {
     `);
         const atribuicoes = rows;
         console.log(`✅ ${atribuicoes.length} atribuições encontradas`);
-        res.json({
+        return res.json({
             success: true,
             data: atribuicoes,
             message: `${atribuicoes.length} atribuições encontradas`
@@ -32,10 +51,7 @@ const handleListAtribuicoes = async (req, res) => {
     }
     catch (error) {
         console.error("❌ Erro ao listar atribuições:", error);
-        res.status(500).json({
-            success: false,
-            message: "Erro ao listar atribuições"
-        });
+        return handleDatabaseError(error, res);
     }
 };
 exports.handleListAtribuicoes = handleListAtribuicoes;
@@ -50,8 +66,10 @@ const handleCreateAtribuicao = async (req, res) => {
                 message: "Responsável e bolsista são obrigatórios"
             });
         }
+        // ✅ Obter pool de forma segura
+        const pool = await db_1.default.getInstance();
         // Verificar se já existe atribuição ativa
-        const [existingRows] = await database_1.pool.execute('SELECT id FROM atribuicoes WHERE responsavel_id = ? AND bolsista_matricula = ? AND status = "ativa"', [responsavelId, bolsistaId]);
+        const [existingRows] = await pool.execute('SELECT id FROM atribuicoes WHERE responsavel_id = ? AND bolsista_matricula = ? AND status = "ativa"', [responsavelId, bolsistaId]);
         if (existingRows.length > 0) {
             return res.status(409).json({
                 success: false,
@@ -59,7 +77,7 @@ const handleCreateAtribuicao = async (req, res) => {
             });
         }
         // Verificar se responsável existe e está liberado
-        const [responsavelRows] = await database_1.pool.execute('SELECT id, nome FROM responsaveis WHERE id = ? AND status = "liberado"', [responsavelId]);
+        const [responsavelRows] = await pool.execute('SELECT id, nome FROM responsaveis WHERE id = ? AND status = "liberado"', [responsavelId]);
         if (responsavelRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -67,7 +85,7 @@ const handleCreateAtribuicao = async (req, res) => {
             });
         }
         // Verificar se bolsista existe e está liberado
-        const [bolsistaRows] = await database_1.pool.execute('SELECT matricula, nome FROM bolsistas WHERE matricula = ? AND status = "liberado"', [bolsistaId]);
+        const [bolsistaRows] = await pool.execute('SELECT matricula, nome FROM bolsistas WHERE matricula = ? AND status = "liberado"', [bolsistaId]);
         if (bolsistaRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -77,12 +95,12 @@ const handleCreateAtribuicao = async (req, res) => {
         const responsavel = responsavelRows[0];
         const bolsista = bolsistaRows[0];
         // Criar atribuição
-        const [result] = await database_1.pool.execute(`INSERT INTO atribuicoes (responsavel_id, bolsista_matricula, observacoes, status) 
+        const [result] = await pool.execute(`INSERT INTO atribuicoes (responsavel_id, bolsista_matricula, observacoes, status) 
        VALUES (?, ?, ?, 'ativa')`, [responsavelId, bolsistaId, observacoes || null]);
         const insertResult = result;
         const novaAtribuicaoId = insertResult.insertId;
         // Buscar a atribuição criada
-        const [newAtribuicaoRows] = await database_1.pool.execute(`
+        const [newAtribuicaoRows] = await pool.execute(`
       SELECT 
         a.id,
         a.responsavel_id as responsavelId,
@@ -99,7 +117,7 @@ const handleCreateAtribuicao = async (req, res) => {
     `, [novaAtribuicaoId]);
         const novaAtribuicao = newAtribuicaoRows[0];
         console.log(`✅ Atribuição criada: ${responsavel.nome} -> ${bolsista.nome}`);
-        res.status(201).json({
+        return res.status(201).json({
             success: true,
             data: novaAtribuicao,
             message: `Bolsista ${bolsista.nome} atribuído ao responsável ${responsavel.nome} com sucesso!`
@@ -107,10 +125,7 @@ const handleCreateAtribuicao = async (req, res) => {
     }
     catch (error) {
         console.error("❌ Erro ao criar atribuição:", error);
-        res.status(500).json({
-            success: false,
-            message: "Erro ao criar atribuição"
-        });
+        return handleDatabaseError(error, res);
     }
 };
 exports.handleCreateAtribuicao = handleCreateAtribuicao;
@@ -126,8 +141,10 @@ const handleUpdateAtribuicao = async (req, res) => {
                 message: "Responsável e bolsista são obrigatórios"
             });
         }
+        // ✅ Obter pool de forma segura
+        const pool = await db_1.default.getInstance();
         // Verificar se a atribuição existe
-        const [existingRows] = await database_1.pool.execute('SELECT id FROM atribuicoes WHERE id = ?', [id]);
+        const [existingRows] = await pool.execute('SELECT id FROM atribuicoes WHERE id = ?', [id]);
         if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -135,7 +152,7 @@ const handleUpdateAtribuicao = async (req, res) => {
             });
         }
         // Verificar se já existe outra atribuição ativa com a mesma combinação
-        const [conflictRows] = await database_1.pool.execute('SELECT id FROM atribuicoes WHERE responsavel_id = ? AND bolsista_matricula = ? AND status = "ativa" AND id != ?', [responsavelId, bolsistaId, id]);
+        const [conflictRows] = await pool.execute('SELECT id FROM atribuicoes WHERE responsavel_id = ? AND bolsista_matricula = ? AND status = "ativa" AND id != ?', [responsavelId, bolsistaId, id]);
         if (conflictRows.length > 0) {
             return res.status(409).json({
                 success: false,
@@ -143,11 +160,11 @@ const handleUpdateAtribuicao = async (req, res) => {
             });
         }
         // Atualizar atribuição
-        await database_1.pool.execute(`UPDATE atribuicoes 
+        await pool.execute(`UPDATE atribuicoes 
        SET responsavel_id = ?, bolsista_matricula = ?, observacoes = ?, data_atualizacao = CURRENT_TIMESTAMP
        WHERE id = ?`, [responsavelId, bolsistaId, observacoes || null, id]);
         // Buscar a atribuição atualizada
-        const [updatedRows] = await database_1.pool.execute(`
+        const [updatedRows] = await pool.execute(`
       SELECT 
         a.id,
         a.responsavel_id as responsavelId,
@@ -164,7 +181,7 @@ const handleUpdateAtribuicao = async (req, res) => {
     `, [id]);
         const atribuicaoAtualizada = updatedRows[0];
         console.log(`✅ Atribuição ${id} atualizada com sucesso`);
-        res.json({
+        return res.json({
             success: true,
             data: atribuicaoAtualizada,
             message: "Atribuição atualizada com sucesso!"
@@ -172,10 +189,7 @@ const handleUpdateAtribuicao = async (req, res) => {
     }
     catch (error) {
         console.error("❌ Erro ao atualizar atribuição:", error);
-        res.status(500).json({
-            success: false,
-            message: "Erro ao atualizar atribuição"
-        });
+        return handleDatabaseError(error, res);
     }
 };
 exports.handleUpdateAtribuicao = handleUpdateAtribuicao;
@@ -184,8 +198,10 @@ const handleDeleteAtribuicao = async (req, res) => {
     try {
         const { id } = req.params;
         console.log("🗑️ Removendo atribuição:", id);
+        // ✅ Obter pool de forma segura
+        const pool = await db_1.default.getInstance();
         // Verificar se a atribuição existe
-        const [existingRows] = await database_1.pool.execute('SELECT id FROM atribuicoes WHERE id = ?', [id]);
+        const [existingRows] = await pool.execute('SELECT id FROM atribuicoes WHERE id = ?', [id]);
         if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -193,21 +209,18 @@ const handleDeleteAtribuicao = async (req, res) => {
             });
         }
         // Marcar como inativa em vez de deletar (soft delete)
-        await database_1.pool.execute(`UPDATE atribuicoes 
+        await pool.execute(`UPDATE atribuicoes 
        SET status = 'inativa', data_atualizacao = CURRENT_TIMESTAMP
        WHERE id = ?`, [id]);
         console.log(`✅ Atribuição ${id} removida com sucesso`);
-        res.json({
+        return res.json({
             success: true,
             message: "Atribuição removida com sucesso!"
         });
     }
     catch (error) {
         console.error("❌ Erro ao remover atribuição:", error);
-        res.status(500).json({
-            success: false,
-            message: "Erro ao remover atribuição"
-        });
+        return handleDatabaseError(error, res);
     }
 };
 exports.handleDeleteAtribuicao = handleDeleteAtribuicao;

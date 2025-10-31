@@ -17,7 +17,7 @@ index_1.default.get("*", (req, res) => {
     if (req.path.startsWith("/api/") || req.path.startsWith("/health")) {
         return res.status(404).json({ error: "API endpoint not found" });
     }
-    res.sendFile(path_1.default.join(distPath, "index.html"));
+    return res.sendFile(path_1.default.join(distPath, "index.html"));
 });
 index_1.default.listen(port, () => {
     console.log(`🚀 Fusion Starter server running on port ${port}`);

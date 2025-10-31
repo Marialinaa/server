@@ -166,7 +166,7 @@ const criarBolsista = async (req, res) => {
         });
     }
 };
-const listarSolicitacoes = async (req, res) => {
+const listarSolicitacoes = async (_req, res) => {
     try {
         console.log('🔍 Listando solicitações pendentes');
         const solicitacoes = await User_1.default.list({ status: 'pendente' });

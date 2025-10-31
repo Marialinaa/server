@@ -1,4 +1,4 @@
-import pool from '../config/database';
+import DatabaseConnection from '../utils/db';
 
 export interface Atribuicao {
   id?: number;
@@ -12,6 +12,9 @@ export interface Atribuicao {
 const AtribuicaoModel = {
   async create(a: Atribuicao) {
     try {
+      // ✅ Obter pool de forma segura
+      const pool = await DatabaseConnection.getInstance();
+
       const sql = 'INSERT INTO atribuicoes (bolsista_id, responsavel_id, titulo, descricao, status, data_criacao) VALUES (?, ?, ?, ?, ?, NOW())';
       const params = [a.bolsista_id, a.responsavel_id || null, a.titulo || null, a.descricao || null, a.status || 'pendente'];
       const [result]: any = await pool.execute(sql, params);
@@ -24,6 +27,9 @@ const AtribuicaoModel = {
 
   async list(filters?: any) {
     try {
+      // ✅ Obter pool de forma segura
+      const pool = await DatabaseConnection.getInstance();
+
       let sql = 'SELECT id, bolsista_id, responsavel_id, titulo, descricao, status, data_criacao, data_atualizacao, data_conclusao FROM atribuicoes WHERE 1=1';
       const params: any[] = [];
       if (filters?.responsavel_id) {
@@ -46,6 +52,9 @@ const AtribuicaoModel = {
 
   async getById(id: number) {
     try {
+      // ✅ Obter pool de forma segura
+      const pool = await DatabaseConnection.getInstance();
+
       const [rows]: any = await pool.execute('SELECT id, bolsista_id, responsavel_id, titulo, descricao, status, data_criacao, data_atualizacao, data_conclusao FROM atribuicoes WHERE id = ?', [id]);
       return rows && rows[0] ? rows[0] : null;
     } catch (error) {
@@ -56,6 +65,9 @@ const AtribuicaoModel = {
 
   async bolsistaJaAtribuido(bolsista_id: number) {
     try {
+      // ✅ Obter pool de forma segura
+      const pool = await DatabaseConnection.getInstance();
+
       const [rows]: any = await pool.execute('SELECT COUNT(*) as cnt FROM atribuicoes WHERE bolsista_id = ? AND status != "cancelada"', [bolsista_id]);
       return rows && rows[0] && rows[0].cnt > 0;
     } catch (error) {

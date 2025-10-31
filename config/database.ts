@@ -104,7 +104,7 @@ export const testDatabaseConnection = async () => {
     console.log('🧪 Testando conexão com banco de dados...');
     
     // Testar uma query simples
-    const [rows] = await connection.execute('SELECT 1 as test');
+    await connection.execute('SELECT 1 as test');
     console.log('✅ Teste de conexão bem-sucedido!');
     
     await connection.end();

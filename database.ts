@@ -1,9 +1,18 @@
-// Re-export das funções de database que estão em server/config/database.ts
+// ============================================
+// RE-EXPORTS PARA COMPATIBILIDADE
+// ============================================
+
+// Re-export do sistema novo (utils/db.ts) - PREFERENCIAL
+export { default as DatabaseConnection, pool, getPool, checkHealth, closePool } from './utils/db';
+
+// Re-export do sistema antigo (config/database.ts) - LEGADO
 export * from './config/database';
-import poolDefault, { dbConfig as db } from './config/database';
+export { dbConfig as db } from './config/database';
 
-// Named export 'pool' esperado por algumas rotas
-export const pool = poolDefault as typeof poolDefault;
-export { db };
+// Default export aponta para o sistema novo
+import DatabaseConnection from './utils/db';
+export default DatabaseConnection;
 
-export default poolDefault;
+// NOTA: Código novo deve usar:
+// import DatabaseConnection from '../database';
+// const pool = await DatabaseConnection.getInstance();

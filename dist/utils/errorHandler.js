@@ -35,7 +35,7 @@ const asyncHandler = (fn) => (req, res, next) => {
 };
 exports.asyncHandler = asyncHandler;
 // Middleware para tratamento de erros
-const errorHandler = (err, req, res, next) => {
+const errorHandler = (err, req, res, _next) => {
     let error = err;
     // Se não for um ApiError, converte para um erro interno
     if (!(error instanceof ApiError)) {

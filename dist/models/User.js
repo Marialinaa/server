@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const database_1 = __importDefault(require("../config/database"));
+const db_1 = __importDefault(require("../utils/db"));
 // Normaliza diferentes nomes de colunas entre esquemas (ex.: nome_completo vs nome)
 const normalizeUserRow = (row) => {
     if (!row)
@@ -25,11 +25,13 @@ const UserModel = {
     // Se status === 'pendente' e quiser solicitações, consulta tabela solicitacoes
     async list(filters = {}) {
         try {
+            // ✅ Obter pool de forma segura
+            const pool = await db_1.default.getInstance();
             // Caso especial: listar solicitações pendentes (tolerante a esquema)
             if (filters.status === 'pendente') {
                 const sql = 'SELECT * FROM solicitacoes WHERE status = ? ORDER BY data_solicitacao DESC';
                 try {
-                    const [rows] = await database_1.default.execute(sql, ['pendente']);
+                    const [rows] = await pool.execute(sql, ['pendente']);
                     return (rows || []).map(normalizeUserRow);
                 }
                 catch (err) {
@@ -50,7 +52,7 @@ const UserModel = {
             }
             // Selecionar todos os campos e normalizar em JS para evitar erros caso colunas possuam nomes diferentes
             const sql = `SELECT * FROM usuarios ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY id DESC`;
-            const [rows] = await database_1.default.execute(sql, params);
+            const [rows] = await pool.execute(sql, params);
             return (rows || []).map(normalizeUserRow);
         }
         catch (error) {
@@ -60,7 +62,9 @@ const UserModel = {
     },
     async getById(id) {
         try {
-            const [rows] = await database_1.default.execute('SELECT * FROM usuarios WHERE id = ? LIMIT 1', [id]);
+            // ✅ Obter pool de forma segura
+            const pool = await db_1.default.getInstance();
+            const [rows] = await pool.execute('SELECT * FROM usuarios WHERE id = ? LIMIT 1', [id]);
             return rows && rows.length ? normalizeUserRow(rows[0]) : null;
         }
         catch (error) {
@@ -70,12 +74,14 @@ const UserModel = {
     },
     async getByEmail(email) {
         try {
-            const [rowsUsu] = await database_1.default.execute('SELECT * FROM usuarios WHERE email = ? LIMIT 1', [email]);
+            // ✅ Obter pool de forma segura
+            const pool = await db_1.default.getInstance();
+            const [rowsUsu] = await pool.execute('SELECT * FROM usuarios WHERE email = ? LIMIT 1', [email]);
             if (rowsUsu && rowsUsu.length)
                 return normalizeUserRow(rowsUsu[0]);
             // Também checar em solicitacoes (usuários ainda não aprovados)
             try {
-                const [rowsSol] = await database_1.default.execute('SELECT * FROM solicitacoes WHERE email = ? LIMIT 1', [email]);
+                const [rowsSol] = await pool.execute('SELECT * FROM solicitacoes WHERE email = ? LIMIT 1', [email]);
                 if (rowsSol && rowsSol.length)
                     return normalizeUserRow(rowsSol[0]);
             }
@@ -92,11 +98,13 @@ const UserModel = {
     },
     async create(data) {
         try {
+            // ✅ Obter pool de forma segura
+            const pool = await db_1.default.getInstance();
             const fields = ['nome_completo', 'email', 'login', 'senha_hash', 'tipo_usuario', 'status'];
             const values = fields.map(f => { var _a; return (_a = data[f]) !== null && _a !== void 0 ? _a : null; });
             const placeholders = fields.map(() => '?').join(',');
             const sql = `INSERT INTO usuarios (${fields.join(',')}) VALUES (${placeholders})`;
-            const [result] = await database_1.default.execute(sql, values);
+            const [result] = await pool.execute(sql, values);
             const insertId = result.insertId || result.insert_id;
             return { id: insertId, ...data };
         }
@@ -119,8 +127,10 @@ const UserModel = {
     },
     async updateStatus(userId, status) {
         try {
+            // ✅ Obter pool de forma segura
+            const pool = await db_1.default.getInstance();
             const sql = 'UPDATE usuarios SET status = ? WHERE id = ?';
-            const [result] = await database_1.default.execute(sql, [status, userId]);
+            const [result] = await pool.execute(sql, [status, userId]);
             return (result && (result.affectedRows || result.affected_rows)) ? true : false;
         }
         catch (error) {

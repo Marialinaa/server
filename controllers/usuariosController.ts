@@ -178,7 +178,7 @@ const criarBolsista = async (req: Request, res: Response) => {
   }
 };
 
-const listarSolicitacoes = async (req: Request, res: Response) => {
+const listarSolicitacoes = async (_req: Request, res: Response) => {
   try {
     console.log('🔍 Listando solicitações pendentes');
     

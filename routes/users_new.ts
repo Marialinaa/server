@@ -1,12 +1,32 @@
 import { RequestHandler } from "express";
-import { pool } from '../database';
+import DatabaseConnection from '../database';
 import { notificarUsuarioAprovado, notificarUsuarioRejeitado } from '../email';
 import type { User, ApiResponse } from "../shared/types";
 
-// GET /api/users - List all users
-export const handleListUsers: RequestHandler = async (req, res) => {
+// ============================================
+// HELPER: Tratamento centralizado de erros
+// ============================================
+function handleDatabaseError(error: any, res: any) {
+  if (error.message && error.message.includes('pool not initialized')) {
+    return res.status(503).json({ 
+      success: false,
+      message: 'Serviço temporariamente indisponível'
+    });
+  }
+  console.error('Database error:', error);
+  return res.status(500).json({ 
+    success: false,
+    message: 'Erro interno do servidor' 
+  });
+}
+
+// GET /api/users - List all users  
+export const handleListUsers: RequestHandler = async (_req, res) => {
   try {
     console.log("🔍 Buscando usuários do banco de dados...");
+
+    // ✅ Obter pool de forma segura
+    const pool = await DatabaseConnection.getInstance();
 
     const [rows] = await pool.execute(
       `SELECT 
@@ -31,15 +51,11 @@ export const handleListUsers: RequestHandler = async (req, res) => {
       data: users,
     };
 
-    res.json(response);
+    return res.json(response);
 
   } catch (error: any) {
     console.error("❌ Erro ao buscar usuários:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Erro ao conectar com o banco de dados",
-    });
+    return handleDatabaseError(error, res);
   }
 };
 
@@ -63,6 +79,9 @@ export const handleUpdateUserStatus: RequestHandler = async (req, res) => {
         message: "Ação deve ser 'aprovar' ou 'rejeitar'",
       });
     }
+
+    // ✅ Obter pool de forma segura
+    const pool = await DatabaseConnection.getInstance();
 
     // Buscar dados do usuário antes de atualizar
     const [userRows] = await pool.execute(
@@ -136,15 +155,11 @@ export const handleUpdateUserStatus: RequestHandler = async (req, res) => {
       data: updatedUser,
     };
 
-    res.json(response);
+    return res.json(response);
 
   } catch (error: any) {
     console.error("❌ Erro ao atualizar status:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Erro ao atualizar status do usuário",
-    });
+    return handleDatabaseError(error, res);
   }
 };
 
@@ -154,6 +169,9 @@ export const handleGetUser: RequestHandler = async (req, res) => {
     const { id } = req.params;
 
     console.log("🔍 Buscando usuário específico:", id);
+
+    // ✅ Obter pool de forma segura
+    const pool = await DatabaseConnection.getInstance();
 
     const [rows] = await pool.execute(
       `SELECT 
@@ -186,14 +204,10 @@ export const handleGetUser: RequestHandler = async (req, res) => {
       data: user,
     };
 
-    res.json(response);
+    return res.json(response);
 
   } catch (error: any) {
     console.error("❌ Erro ao buscar usuário:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Erro interno do servidor",
-    });
+    return handleDatabaseError(error, res);
   }
 };

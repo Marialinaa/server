@@ -3,13 +3,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const database_1 = __importDefault(require("../config/database"));
+const db_1 = __importDefault(require("../utils/db"));
 const AtribuicaoModel = {
     async create(a) {
         try {
+            // ✅ Obter pool de forma segura
+            const pool = await db_1.default.getInstance();
             const sql = 'INSERT INTO atribuicoes (bolsista_id, responsavel_id, titulo, descricao, status, data_criacao) VALUES (?, ?, ?, ?, ?, NOW())';
             const params = [a.bolsista_id, a.responsavel_id || null, a.titulo || null, a.descricao || null, a.status || 'pendente'];
-            const [result] = await database_1.default.execute(sql, params);
+            const [result] = await pool.execute(sql, params);
             return { id: result.insertId, ...a };
         }
         catch (error) {
@@ -19,6 +21,8 @@ const AtribuicaoModel = {
     },
     async list(filters) {
         try {
+            // ✅ Obter pool de forma segura
+            const pool = await db_1.default.getInstance();
             let sql = 'SELECT id, bolsista_id, responsavel_id, titulo, descricao, status, data_criacao, data_atualizacao, data_conclusao FROM atribuicoes WHERE 1=1';
             const params = [];
             if (filters === null || filters === void 0 ? void 0 : filters.responsavel_id) {
@@ -34,7 +38,7 @@ const AtribuicaoModel = {
                 params.push(filters.status);
             }
             sql += ' ORDER BY data_criacao DESC';
-            const [rows] = await database_1.default.execute(sql, params);
+            const [rows] = await pool.execute(sql, params);
             return rows || [];
         }
         catch (error) {
@@ -44,7 +48,9 @@ const AtribuicaoModel = {
     },
     async getById(id) {
         try {
-            const [rows] = await database_1.default.execute('SELECT id, bolsista_id, responsavel_id, titulo, descricao, status, data_criacao, data_atualizacao, data_conclusao FROM atribuicoes WHERE id = ?', [id]);
+            // ✅ Obter pool de forma segura
+            const pool = await db_1.default.getInstance();
+            const [rows] = await pool.execute('SELECT id, bolsista_id, responsavel_id, titulo, descricao, status, data_criacao, data_atualizacao, data_conclusao FROM atribuicoes WHERE id = ?', [id]);
             return rows && rows[0] ? rows[0] : null;
         }
         catch (error) {
@@ -54,7 +60,9 @@ const AtribuicaoModel = {
     },
     async bolsistaJaAtribuido(bolsista_id) {
         try {
-            const [rows] = await database_1.default.execute('SELECT COUNT(*) as cnt FROM atribuicoes WHERE bolsista_id = ? AND status != "cancelada"', [bolsista_id]);
+            // ✅ Obter pool de forma segura
+            const pool = await db_1.default.getInstance();
+            const [rows] = await pool.execute('SELECT COUNT(*) as cnt FROM atribuicoes WHERE bolsista_id = ? AND status != "cancelada"', [bolsista_id]);
             return rows && rows[0] && rows[0].cnt > 0;
         }
         catch (error) {

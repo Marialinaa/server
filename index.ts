@@ -62,7 +62,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // ✅ HEALTH CHECK E INFO
 // ============================================
 
-app.get('/health', async (req: Request, res: Response) => {
+app.get('/health', async (_req: Request, res: Response) => {
   try {
     const { checkHealth } = require('./utils/db');
     const dbHealth = await checkHealth();
@@ -83,7 +83,7 @@ app.get('/health', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/', (req: Request, res: Response) => {
+app.get('/', (_req: Request, res: Response) => {
   res.json({
     name: 'Aura-Hub API',
     version: '1.0.0',

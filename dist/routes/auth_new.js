@@ -4,8 +4,24 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleRegister = exports.handleLogin = void 0;
-const database_1 = require("../database");
+const database_1 = __importDefault(require("../database"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
+// ============================================
+// HELPER: Tratamento centralizado de erros
+// ============================================
+function handleDatabaseError(error, res) {
+    if (error.message && error.message.includes('pool not initialized')) {
+        return res.status(503).json({
+            success: false,
+            message: 'Serviço temporariamente indisponível. Tente novamente em alguns segundos.'
+        });
+    }
+    console.error('Database error:', error);
+    return res.status(500).json({
+        success: false,
+        message: 'Erro interno do servidor'
+    });
+}
 const handleLogin = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -16,8 +32,10 @@ const handleLogin = async (req, res) => {
                 message: "Email e senha são obrigatórios",
             });
         }
+        // ✅ Obter pool de forma segura
+        const pool = await database_1.default.getInstance();
         // Buscar usuário no banco de dados
-        const [rows] = await database_1.pool.execute('SELECT id, nome, login, email, password, tipo, status FROM usuarios WHERE email = ?', [email]);
+        const [rows] = await pool.execute('SELECT id, nome, login, email, password, tipo, status FROM usuarios WHERE email = ?', [email]);
         const users = rows;
         if (users.length === 0) {
             return res.status(404).json({
@@ -46,7 +64,7 @@ const handleLogin = async (req, res) => {
             });
         }
         // Atualizar último login
-        await database_1.pool.execute('UPDATE usuarios SET ultimo_login = CURRENT_TIMESTAMP WHERE id = ?', [user.id]);
+        await pool.execute('UPDATE usuarios SET ultimo_login = CURRENT_TIMESTAMP WHERE id = ?', [user.id]);
         // Preparar dados para enviar (sem a senha)
         const { password: _, ...userWithoutPassword } = user;
         // Gerar token simples (em produção use JWT)
@@ -56,7 +74,7 @@ const handleLogin = async (req, res) => {
             tipo: user.tipo,
             timestamp: Date.now()
         })).toString('base64');
-        res.json({
+        return res.json({
             success: true,
             message: 'Login efetuado com sucesso',
             user: userWithoutPassword,
@@ -65,10 +83,7 @@ const handleLogin = async (req, res) => {
     }
     catch (error) {
         console.error("❌ Erro no login:", error);
-        res.status(500).json({
-            success: false,
-            message: "Erro interno do servidor"
-        });
+        return handleDatabaseError(error, res);
     }
 };
 exports.handleLogin = handleLogin;
@@ -115,8 +130,10 @@ const handleRegister = async (req, res) => {
                 message: 'Senha deve ter pelo menos 6 caracteres'
             });
         }
+        // ✅ Obter pool de forma segura
+        const pool = await database_1.default.getInstance();
         // Verificar se email já existe
-        const [emailRows] = await database_1.pool.execute('SELECT id FROM usuarios WHERE email = ?', [email]);
+        const [emailRows] = await pool.execute('SELECT id FROM usuarios WHERE email = ?', [email]);
         if (emailRows.length > 0) {
             return res.status(409).json({
                 success: false,
@@ -124,7 +141,7 @@ const handleRegister = async (req, res) => {
             });
         }
         // Verificar se login já existe
-        const [loginRows] = await database_1.pool.execute('SELECT id FROM usuarios WHERE login = ?', [login]);
+        const [loginRows] = await pool.execute('SELECT id FROM usuarios WHERE login = ?', [login]);
         if (loginRows.length > 0) {
             return res.status(409).json({
                 success: false,
@@ -134,12 +151,12 @@ const handleRegister = async (req, res) => {
         // Criptografar senha
         const senhaHash = await bcrypt_1.default.hash(senha, 10);
         // Inserir novo usuário
-        const [result] = await database_1.pool.execute(`INSERT INTO usuarios (nome, funcao, endereco, email, login, password, tipo_usuario, tipo, status, data_criacao) 
+        const [result] = await pool.execute(`INSERT INTO usuarios (nome, funcao, endereco, email, login, password, tipo_usuario, tipo, status, data_criacao) 
        VALUES (?, ?, ?, ?, ?, ?, ?, 'usuario', 'pendente', CURRENT_TIMESTAMP)`, [nome, funcao, endereco, email, login, senhaHash, tipoUsuario]);
         const insertResult = result;
         const novoId = insertResult.insertId;
         // Buscar dados do usuário recém-criado
-        const [newUserRows] = await database_1.pool.execute(`SELECT 
+        const [newUserRows] = await pool.execute(`SELECT 
         id, 
         nome as nomeCompleto,
         funcao,
@@ -153,7 +170,7 @@ const handleRegister = async (req, res) => {
        WHERE id = ?`, [novoId]);
         const novoUsuario = newUserRows[0];
         novoUsuario.status = 'pendente';
-        res.json({
+        return res.json({
             success: true,
             message: 'Usuário registrado com sucesso! Aguarde a aprovação do administrador.',
             data: novoUsuario
@@ -161,10 +178,7 @@ const handleRegister = async (req, res) => {
     }
     catch (error) {
         console.error("❌ Erro no registro:", error);
-        res.status(500).json({
-            success: false,
-            message: "Erro interno do servidor"
-        });
+        return handleDatabaseError(error, res);
     }
 };
 exports.handleRegister = handleRegister;

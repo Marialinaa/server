@@ -1,6 +1,22 @@
 // server/routes/atribuicoes.ts
 import { Request, Response } from "express";
-import { pool } from '../database';
+import DatabaseConnection from '../utils/db';
+
+// ✅ Helper para tratamento centralizado de erros de banco
+function handleDatabaseError(error: any, res: Response) {
+  console.error("💥 Erro de banco de dados:", error.message);
+
+  const isDatabaseError = error.code?.startsWith('ER_') || 
+                          error.code === 'ECONNREFUSED' || 
+                          error.errno !== undefined;
+
+  return res.status(500).json({
+    success: false,
+    message: isDatabaseError 
+      ? "Erro ao conectar com o banco de dados" 
+      : "Erro interno do servidor",
+  });
+}
 
 export interface Atribuicao {
   id: number;
@@ -14,9 +30,12 @@ export interface Atribuicao {
 }
 
 // GET /api/atribuicoes - Listar todas as atribuições
-export const handleListAtribuicoes = async (req: Request, res: Response) => {
+export const handleListAtribuicoes = async (_req: Request, res: Response) => {
   try {
     console.log("📋 Listando atribuições...");
+
+    // ✅ Obter pool de forma segura
+    const pool = await DatabaseConnection.getInstance();
 
     const [rows] = await pool.execute(`
       SELECT 
@@ -39,7 +58,7 @@ export const handleListAtribuicoes = async (req: Request, res: Response) => {
     
     console.log(`✅ ${atribuicoes.length} atribuições encontradas`);
 
-    res.json({
+    return res.json({
       success: true,
       data: atribuicoes,
       message: `${atribuicoes.length} atribuições encontradas`
@@ -47,10 +66,7 @@ export const handleListAtribuicoes = async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error("❌ Erro ao listar atribuições:", error);
-    res.status(500).json({
-      success: false,
-      message: "Erro ao listar atribuições"
-    });
+    return handleDatabaseError(error, res);
   }
 };
 
@@ -67,6 +83,9 @@ export const handleCreateAtribuicao = async (req: Request, res: Response) => {
         message: "Responsável e bolsista são obrigatórios"
       });
     }
+
+    // ✅ Obter pool de forma segura
+    const pool = await DatabaseConnection.getInstance();
 
     // Verificar se já existe atribuição ativa
     const [existingRows] = await pool.execute(
@@ -141,7 +160,7 @@ export const handleCreateAtribuicao = async (req: Request, res: Response) => {
 
     console.log(`✅ Atribuição criada: ${responsavel.nome} -> ${bolsista.nome}`);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: novaAtribuicao,
       message: `Bolsista ${bolsista.nome} atribuído ao responsável ${responsavel.nome} com sucesso!`
@@ -149,10 +168,7 @@ export const handleCreateAtribuicao = async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error("❌ Erro ao criar atribuição:", error);
-    res.status(500).json({
-      success: false,
-      message: "Erro ao criar atribuição"
-    });
+    return handleDatabaseError(error, res);
   }
 };
 
@@ -170,6 +186,9 @@ export const handleUpdateAtribuicao = async (req: Request, res: Response) => {
         message: "Responsável e bolsista são obrigatórios"
       });
     }
+
+    // ✅ Obter pool de forma segura
+    const pool = await DatabaseConnection.getInstance();
 
     // Verificar se a atribuição existe
     const [existingRows] = await pool.execute(
@@ -226,7 +245,7 @@ export const handleUpdateAtribuicao = async (req: Request, res: Response) => {
 
     console.log(`✅ Atribuição ${id} atualizada com sucesso`);
 
-    res.json({
+    return res.json({
       success: true,
       data: atribuicaoAtualizada,
       message: "Atribuição atualizada com sucesso!"
@@ -234,10 +253,7 @@ export const handleUpdateAtribuicao = async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error("❌ Erro ao atualizar atribuição:", error);
-    res.status(500).json({
-      success: false,
-      message: "Erro ao atualizar atribuição"
-    });
+    return handleDatabaseError(error, res);
   }
 };
 
@@ -247,6 +263,9 @@ export const handleDeleteAtribuicao = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     console.log("🗑️ Removendo atribuição:", id);
+
+    // ✅ Obter pool de forma segura
+    const pool = await DatabaseConnection.getInstance();
 
     // Verificar se a atribuição existe
     const [existingRows] = await pool.execute(
@@ -271,16 +290,13 @@ export const handleDeleteAtribuicao = async (req: Request, res: Response) => {
 
     console.log(`✅ Atribuição ${id} removida com sucesso`);
 
-    res.json({
+    return res.json({
       success: true,
       message: "Atribuição removida com sucesso!"
     });
 
   } catch (error: any) {
     console.error("❌ Erro ao remover atribuição:", error);
-    res.status(500).json({
-      success: false,
-      message: "Erro ao remover atribuição"
-    });
+    return handleDatabaseError(error, res);
   }
 };

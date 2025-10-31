@@ -3,7 +3,7 @@ import express from 'express';
 const router = express.Router();
 
 // Rota de teste simples
-router.get('/test', (req, res) => {
+router.get('/test', (_req, res) => {
   res.json({
     success: true,
     message: 'Rota de usuários funcionando',

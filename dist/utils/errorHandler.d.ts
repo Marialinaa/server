@@ -13,7 +13,7 @@ export declare const httpErrors: {
     serverError: (message?: string) => ApiError;
 };
 export declare const asyncHandler: (fn: Function) => (req: Request, res: Response, next: NextFunction) => void;
-export declare const errorHandler: (err: any, req: Request, res: Response, next: NextFunction) => void;
+export declare const errorHandler: (err: any, req: Request, res: Response, _next: NextFunction) => void;
 declare const _default: {
     ApiError: typeof ApiError;
     httpErrors: {
@@ -25,7 +25,7 @@ declare const _default: {
         serverError: (message?: string) => ApiError;
     };
     asyncHandler: (fn: Function) => (req: Request, res: Response, next: NextFunction) => void;
-    errorHandler: (err: any, req: Request, res: Response, next: NextFunction) => void;
+    errorHandler: (err: any, req: Request, res: Response, _next: NextFunction) => void;
 };
 export default _default;
 //# sourceMappingURL=errorHandler.d.ts.map

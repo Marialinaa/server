@@ -5,11 +5,28 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
-// @ts-ignore - db.js tem declaração de tipos em db.d.ts
-import { pool } from '../utils/db';
+import DatabaseConnection from '../utils/db';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'seu-secret-aqui-MUDE-EM-PRODUCAO';
 const JWT_EXPIRES_IN = '24h';
+
+// ============================================
+// HELPER: Tratamento centralizado de erros
+// ============================================
+function handleDatabaseError(error: any, res: Response) {
+  if (error.message && error.message.includes('pool not initialized')) {
+    return res.status(503).json({ 
+      success: false,
+      error: 'Serviço temporariamente indisponível',
+      message: 'Banco de dados está inicializando, por favor tente novamente em alguns segundos'
+    });
+  }
+  console.error('Database error:', error);
+  return res.status(500).json({ 
+    success: false,
+    error: 'Erro interno do servidor' 
+  });
+}
 
 // ============================================
 // LOGIN - Suporta email/login e senha
@@ -26,6 +43,9 @@ export async function login(req: Request, res: Response) {
         message: 'Email/login e senha são obrigatórios'
       });
     }
+
+    // ✅ Obter pool de forma segura
+    const pool = await DatabaseConnection.getInstance();
 
     // Buscar usuário por email ou login
     let [rows]: any = await pool.execute(
@@ -82,10 +102,7 @@ export async function login(req: Request, res: Response) {
 
   } catch (error: any) {
     console.error('❌ Erro no login:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erro interno no servidor'
-    });
+    return handleDatabaseError(error, res);
   }
 }
 
@@ -110,6 +127,9 @@ export async function register(req: Request, res: Response) {
         message: 'Tipo de usuário inválido'
       });
     }
+
+    // ✅ Obter pool de forma segura
+    const pool = await DatabaseConnection.getInstance();
 
     // Verificar se já existe usuário com mesmo email/login
     const [existingUser]: any = await pool.execute(
@@ -158,10 +178,7 @@ export async function register(req: Request, res: Response) {
 
   } catch (error: any) {
     console.error('❌ Erro ao registrar usuário:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao processar solicitação'
-    });
+    return handleDatabaseError(error, res);
   }
 }
 
@@ -174,6 +191,9 @@ export async function approveUser(req: Request, res: Response) {
     if (!userId) {
       return res.status(400).json({ success: false, message: 'ID da solicitação é obrigatório' });
     }
+
+    // ✅ Obter pool de forma segura
+    const pool = await DatabaseConnection.getInstance();
 
     // Buscar solicitação
     const [rows]: any = await pool.execute('SELECT * FROM solicitacoes WHERE id = ? LIMIT 1', [userId]);
@@ -200,10 +220,7 @@ export async function approveUser(req: Request, res: Response) {
 
   } catch (error: any) {
     console.error('❌ Erro ao aprovar usuário:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao aprovar solicitação'
-    });
+    return handleDatabaseError(error, res);
   }
 }
 
@@ -216,6 +233,9 @@ export async function rejectUser(req: Request, res: Response) {
     if (!userId) {
       return res.status(400).json({ success: false, message: 'ID da solicitação é obrigatório' });
     }
+
+    // ✅ Obter pool de forma segura
+    const pool = await DatabaseConnection.getInstance();
 
     const [rows]: any = await pool.execute('SELECT * FROM solicitacoes WHERE id = ? LIMIT 1', [userId]);
     const solicitacao = rows[0];
@@ -233,9 +253,6 @@ export async function rejectUser(req: Request, res: Response) {
 
   } catch (error: any) {
     console.error('❌ Erro ao rejeitar usuário:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao rejeitar solicitação'
-    });
+    return handleDatabaseError(error, res);
   }
 }

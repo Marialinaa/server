@@ -4,7 +4,7 @@ declare const _default: {
     getUsuario: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
     criarResponsavel: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
     criarBolsista: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
-    listarSolicitacoes: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+    listarSolicitacoes: (_req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
     atualizarUsuario: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
 };
 export default _default;

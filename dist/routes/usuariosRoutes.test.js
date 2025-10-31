@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const router = express_1.default.Router();
 // Rota de teste simples
-router.get('/test', (req, res) => {
+router.get('/test', (_req, res) => {
     res.json({
         success: true,
         message: 'Rota de usuários funcionando',

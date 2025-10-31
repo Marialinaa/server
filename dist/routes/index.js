@@ -12,7 +12,7 @@ const horariosRoutes_1 = __importDefault(require("./horariosRoutes"));
 require("./config/loadConfig");
 const router = express_1.default.Router();
 // Rota de teste simples
-router.get('/test', (req, res) => {
+router.get('/test', (_req, res) => {
     res.json({
         success: true,
         message: 'API funcionando normalmente',
@@ -22,7 +22,7 @@ router.get('/test', (req, res) => {
 });
 // Rota que retorna configuração útil para clientes em desenvolvimento
 // Detecta o IP local da máquina para facilitar o uso do frontend em outros dispositivos na mesma rede
-router.get('/config', (req, res) => {
+router.get('/config', (_req, res) => {
     try {
         const interfaces = os_1.default.networkInterfaces();
         let localIP = 'localhost';

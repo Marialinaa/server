@@ -1,13 +1,34 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleGetUser = exports.handleUpdateUserStatus = exports.handleListUsers = void 0;
-const database_1 = require("../database");
+const database_1 = __importDefault(require("../database"));
 const email_1 = require("../email");
-// GET /api/users - List all users
-const handleListUsers = async (req, res) => {
+// ============================================
+// HELPER: Tratamento centralizado de erros
+// ============================================
+function handleDatabaseError(error, res) {
+    if (error.message && error.message.includes('pool not initialized')) {
+        return res.status(503).json({
+            success: false,
+            message: 'Serviço temporariamente indisponível'
+        });
+    }
+    console.error('Database error:', error);
+    return res.status(500).json({
+        success: false,
+        message: 'Erro interno do servidor'
+    });
+}
+// GET /api/users - List all users  
+const handleListUsers = async (_req, res) => {
     try {
         console.log("🔍 Buscando usuários do banco de dados...");
-        const [rows] = await database_1.pool.execute(`SELECT 
+        // ✅ Obter pool de forma segura
+        const pool = await database_1.default.getInstance();
+        const [rows] = await pool.execute(`SELECT 
         id, 
         nome as nomeCompleto, 
         email, 
@@ -24,14 +45,11 @@ const handleListUsers = async (req, res) => {
             message: "Usuários carregados com sucesso",
             data: users,
         };
-        res.json(response);
+        return res.json(response);
     }
     catch (error) {
         console.error("❌ Erro ao buscar usuários:", error);
-        res.status(500).json({
-            success: false,
-            message: "Erro ao conectar com o banco de dados",
-        });
+        return handleDatabaseError(error, res);
     }
 };
 exports.handleListUsers = handleListUsers;
@@ -52,8 +70,10 @@ const handleUpdateUserStatus = async (req, res) => {
                 message: "Ação deve ser 'aprovar' ou 'rejeitar'",
             });
         }
+        // ✅ Obter pool de forma segura
+        const pool = await database_1.default.getInstance();
         // Buscar dados do usuário antes de atualizar
-        const [userRows] = await database_1.pool.execute('SELECT id, nome, email, login, status FROM usuarios WHERE id = ?', [id]);
+        const [userRows] = await pool.execute('SELECT id, nome, email, login, status FROM usuarios WHERE id = ?', [id]);
         const users = userRows;
         if (users.length === 0) {
             return res.status(404).json({
@@ -64,7 +84,7 @@ const handleUpdateUserStatus = async (req, res) => {
         const user = users[0];
         const newStatus = acao === 'aprovar' ? 'aprovado' : 'rejeitado';
         // Atualizar status no banco
-        await database_1.pool.execute('UPDATE usuarios SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newStatus, id]);
+        await pool.execute('UPDATE usuarios SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newStatus, id]);
         console.log(`✅ Status do usuário ${user.nome} atualizado para: ${newStatus}`);
         // Enviar email de notificação
         console.log('📧 Enviando email de notificação...');
@@ -90,7 +110,7 @@ const handleUpdateUserStatus = async (req, res) => {
             console.log('⚠️ Falha ao enviar email de notificação:', emailResult.error);
         }
         // Buscar dados atualizados do usuário
-        const [updatedRows] = await database_1.pool.execute(`SELECT 
+        const [updatedRows] = await pool.execute(`SELECT 
         id, 
         nome as nomeCompleto, 
         email, 
@@ -106,14 +126,11 @@ const handleUpdateUserStatus = async (req, res) => {
             message: `Usuário ${newStatus} com sucesso! Email de notificação enviado.`,
             data: updatedUser,
         };
-        res.json(response);
+        return res.json(response);
     }
     catch (error) {
         console.error("❌ Erro ao atualizar status:", error);
-        res.status(500).json({
-            success: false,
-            message: "Erro ao atualizar status do usuário",
-        });
+        return handleDatabaseError(error, res);
     }
 };
 exports.handleUpdateUserStatus = handleUpdateUserStatus;
@@ -122,7 +139,9 @@ const handleGetUser = async (req, res) => {
     try {
         const { id } = req.params;
         console.log("🔍 Buscando usuário específico:", id);
-        const [rows] = await database_1.pool.execute(`SELECT 
+        // ✅ Obter pool de forma segura
+        const pool = await database_1.default.getInstance();
+        const [rows] = await pool.execute(`SELECT 
         id, 
         nome as nomeCompleto, 
         email, 
@@ -145,14 +164,11 @@ const handleGetUser = async (req, res) => {
             message: "Usuário encontrado",
             data: user,
         };
-        res.json(response);
+        return res.json(response);
     }
     catch (error) {
         console.error("❌ Erro ao buscar usuário:", error);
-        res.status(500).json({
-            success: false,
-            message: "Erro interno do servidor",
-        });
+        return handleDatabaseError(error, res);
     }
 };
 exports.handleGetUser = handleGetUser;
