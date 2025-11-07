@@ -4,9 +4,13 @@
   "description": "Backend API for Aura-Hub (Node + TypeScript + Express + MySQL)",
   "main": "index.js",
   "scripts": {
-    "build": "echo 'Starting build...' && tsc && echo 'Build completed!'",
-    "start": "echo 'Starting server...' && node index.js",
-    "dev": "node index.js"
+    "clean": "rm -rf dist node_modules package-lock.json",
+    "prebuild": "npm install --include=dev",
+    "build": "echo 'Starting TypeScript build...' && npm run clean-dist && npx tsc --skipLibCheck --verbose && echo 'Build completed successfully!'",
+    "clean-dist": "rm -rf dist",
+    "postbuild": "echo 'TypeScript compilation finished' && ls -la dist/ || echo 'No dist directory found'",
+    "start": "echo 'Starting server...' && node dist/index.js || node index.js",
+    "dev": "ts-node-dev --respawn --transpile-only index.ts"
   },
   "keywords": [
     "api",
