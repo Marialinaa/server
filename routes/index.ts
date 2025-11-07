@@ -28,6 +28,53 @@ router.post('/test-redirect', (_req, res) => {
   });
 });
 
+// Rota de teste para email
+router.post('/test-email', async (_req, res) => {
+  try {
+    const { sendEmail, notificarAdminNovoUsuario } = await import('../email');
+    
+    console.log('📧 [TEST] Testando função de email...');
+    
+    // Testar email simples
+    const resultadoSimples = await sendEmail(
+      'mariaxxlina@gmail.com', 
+      'Teste de Email - Sistema Funcionando', 
+      '<h1>✅ Sistema de Email Funcionando!</h1><p>Este é um teste para verificar se o email está sendo enviado corretamente.</p>'
+    );
+    
+    console.log('📧 [TEST] Resultado email simples:', resultadoSimples);
+    
+    // Testar notificação de admin
+    const resultadoAdmin = await notificarAdminNovoUsuario({
+      nome: 'Usuario Teste Email',
+      tipo_usuario: 'bolsista',
+      email: 'teste@exemplo.com',
+      login: 'teste123'
+    });
+    
+    console.log('📧 [TEST] Resultado notificação admin:', resultadoAdmin);
+    
+    res.json({
+      success: true,
+      message: 'Teste de email executado',
+      resultados: {
+        emailSimples: resultadoSimples,
+        notificacaoAdmin: resultadoAdmin
+      },
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error: any) {
+    console.error('❌ [TEST] Erro no teste de email:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro no teste de email',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Rota de teste para registro
 router.post('/test-register', (req, res) => {
   console.log('📋 [TEST-REGISTER] Requisição recebida:', req.body);

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import UserModel from '../models/User';
+import { notificarAdminNovoUsuario } from '../email';
 
 const listarUsuarios = async (req: Request, res: Response) => {
   try {
@@ -94,6 +95,20 @@ const criarResponsavel = async (req: Request, res: Response) => {
     });
     
     console.log('✅ Responsável criado com sucesso:', { id: newUser.id, nome: nomeCompleto, email });
+    
+    // Notificar administrador sobre novo usuário
+    try {
+      await notificarAdminNovoUsuario({
+        nome: nomeCompleto,
+        tipo_usuario: 'responsavel',
+        email: email,
+        login: email.split('@')[0]
+      });
+      console.log('📧 Email de notificação enviado ao administrador');
+    } catch (emailError) {
+      console.error('❌ Erro ao enviar email ao administrador:', emailError);
+    }
+    
     return res.status(201).json({
       success: true,
       message: 'Responsável criado com sucesso',
@@ -153,6 +168,20 @@ const criarBolsista = async (req: Request, res: Response) => {
     });
     
     console.log('✅ Bolsista criado com sucesso:', { id: newUser.id, nome: nomeCompleto, email });
+    
+    // Notificar administrador sobre novo usuário
+    try {
+      await notificarAdminNovoUsuario({
+        nome: nomeCompleto,
+        tipo_usuario: 'bolsista',
+        email: email,
+        login: matricula || email.split('@')[0]
+      });
+      console.log('📧 Email de notificação enviado ao administrador');
+    } catch (emailError) {
+      console.error('❌ Erro ao enviar email ao administrador:', emailError);
+    }
+    
     return res.status(201).json({
       success: true,
       message: 'Bolsista criado com sucesso',
