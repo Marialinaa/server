@@ -147,7 +147,7 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
       { expiresIn: '24h' }
     );
 
-    // Criar resposta com redirectTo
+    // Criar resposta com redirectTo HARDCODED ADMIN TEST
     const responseData = {
       success: true,
       message: "Login realizado com sucesso",
@@ -161,7 +161,7 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
         data_criacao: user.data_criacao,
         ultimo_acesso: new Date().toISOString()
       },
-      redirectTo: redirectTo
+      redirectTo: user.tipo_usuario === 'admin' ? '/admin' : (user.tipo_usuario === 'bolsista' ? '/bolsista-dashboard' : '/responsavel-dashboard')
     };
 
     console.log('🚀 [handleLogin] RESPONSE FINAL:', JSON.stringify(responseData, null, 2));
