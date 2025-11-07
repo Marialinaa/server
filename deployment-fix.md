@@ -7,6 +7,7 @@ O Render estava tentando encontrar o diretório server mas o repositório não t
 1. Garantir que o package.json está no repositório
 2. Configurar o Render para usar a raiz do repositório
 3. Atualizar os scripts de deploy
+4. **CRÍTICO**: Adicionar `rootDir: .` no render.yaml para corrigir o erro "Service Root Directory '/opt/render/project/src/server' is missing"
 
 ## Data do Fix
 2025-11-07
@@ -15,3 +16,5 @@ O Render estava tentando encontrar o diretório server mas o repositório não t
 ✅ Package.json verificado e adicionado ao repositório
 ✅ Estrutura corrigida
 ✅ Teste de registro funcionando (Status 200, usuário ID 7 criado)
+✅ **NOVO**: render.yaml corrigido com rootDir explícito
+✅ **PROBLEMA RESOLVIDO**: Render não deve mais procurar pasta server inexistente

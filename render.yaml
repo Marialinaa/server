@@ -4,9 +4,8 @@ services:
     env: node
     region: oregon
     plan: free
-    rootDir: .
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    buildCommand: chmod +x ./build.sh && ./build.sh
+    startCommand: chmod +x ./start.sh && ./start.sh
     envVars:
       - key: NODE_ENV
         value: production
