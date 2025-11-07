@@ -301,7 +301,7 @@ export const handleRegister = async (req: Request, res: Response): Promise<void>
     // Inserir na tabela solicitacoes (aguardando aprovação)
     console.log("💾 [handleRegister] Salvando solicitação...");
     const [result] = await pool.execute(
-      `INSERT INTO solicitacoes (nome_completo, email, login, senha_hash, tipo_usuario, status, data_criacao) 
+      `INSERT INTO solicitacoes (nome_completo, email, login, senha_hash, tipo_usuario, status, data_solicitacao) 
        VALUES (?, ?, ?, ?, ?, 'pendente', CURRENT_TIMESTAMP)`,
       [nome, email, login, senhaHash, tipoUsuario]
     );
