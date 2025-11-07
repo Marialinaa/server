@@ -311,7 +311,7 @@ export const handleRegister = async (req: Request, res: Response): Promise<void>
 
     console.log(`✅ [handleRegister] Solicitação criada com ID: ${novoId}`);
 
-    res.json({
+    const responseData = {
       success: true,
       message: 'Solicitação de cadastro enviada com sucesso! Aguarde a aprovação do administrador.',
       data: {
@@ -322,7 +322,10 @@ export const handleRegister = async (req: Request, res: Response): Promise<void>
         tipo_usuario: tipoUsuario,
         status: 'pendente'
       }
-    });
+    };
+    
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).send(JSON.stringify(responseData));
 
   } catch (error: any) {
     console.error("❌ [handleRegister] Erro no registro:", error);
