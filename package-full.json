@@ -4,9 +4,12 @@
   "description": "Backend API for Aura-Hub (Node + TypeScript + Express + MySQL)",
   "main": "index.js",
   "scripts": {
-    "build": "echo 'Starting build...' && tsc && echo 'Build completed!'",
-    "start": "echo 'Starting server...' && node index.js",
-    "dev": "node index.js"
+    "dev": "ts-node-dev --respawn --transpile-only index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint . --ext .ts",
+    "test": "jest",
+    "postinstall": "npm run build"
   },
   "keywords": [
     "api",
