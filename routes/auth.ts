@@ -25,8 +25,8 @@ function handleDatabaseError(error: any, res: Response) {
 // ============================================
 export const handleLogin = async (req: Request, res: Response): Promise<void> => {
   try {
-    console.log("🔐 [SISTEMA NOVO v2.0] Iniciando função de login");
-    console.log("🆕 [DEPLOY FORÇADO] HandleLogin executando - Sistema novo ativo!");
+    console.log("🔐 [SISTEMA NOVO v3.0] Iniciando função de login - DIRECT ROUTE!");
+    console.log("🆕 [DEPLOY FORÇADO] HandleLogin executando - REDIRECTO TESTING!");
     
     const { email, password } = req.body;
     console.log("🔐 Tentativa de login:", { email });
