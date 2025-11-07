@@ -139,15 +139,19 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
 
     console.log(`🔄 [handleLogin] Redirecionando ${user.tipo_usuario} para: ${redirectTo}`);
 
+    // Importar JWT dinamicamente
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign(
+      { id: user.id, email: user.email, tipo_usuario: user.tipo_usuario },
+      process.env.JWT_SECRET || 'secret-jwt-key',
+      { expiresIn: '24h' }
+    );
+
     // Criar resposta com redirectTo
     const responseData = {
       success: true,
       message: "Login realizado com sucesso",
-      token: require('jsonwebtoken').sign(
-        { id: user.id, email: user.email, tipo_usuario: user.tipo_usuario },
-        process.env.JWT_SECRET || 'secret-jwt-key',
-        { expiresIn: '24h' }
-      ),
+      token: token,
       user: {
         id: user.id,
         nome_completo: user.nome_completo,
