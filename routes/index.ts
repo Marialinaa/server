@@ -28,6 +28,16 @@ router.post('/test-redirect', (_req, res) => {
   });
 });
 
+// Rota de teste para registro
+router.post('/test-register', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Teste de registro funcionando',
+    body: req.body,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Rota que retorna configuração útil para clientes em desenvolvimento
 // Detecta o IP local da máquina para facilitar o uso do frontend em outros dispositivos na mesma rede
 router.get('/config', (_req, res) => {
