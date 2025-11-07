@@ -28,6 +28,34 @@ router.post('/test-redirect', (_req, res) => {
   });
 });
 
+// Rota de debug para verificar estrutura da tabela
+router.post('/debug/sql', async (req, res) => {
+  try {
+    const DatabaseConnection = await import('../utils/db');
+    const pool = await DatabaseConnection.default.getInstance();
+    
+    console.log('🔍 [DEBUG-SQL] Executando:', req.body.sql);
+    
+    const [rows]: any = await pool.execute(req.body.sql);
+    
+    res.json({
+      success: true,
+      message: 'SQL executado com sucesso',
+      data: rows,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error: any) {
+    console.error('❌ [DEBUG-SQL] Erro:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro executando SQL',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Rota de teste para email
 router.post('/test-email', async (_req, res) => {
   try {
