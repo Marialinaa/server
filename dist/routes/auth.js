@@ -22,163 +22,233 @@ function handleDatabaseError(error, res) {
         message: 'Erro interno do servidor'
     });
 }
+// ============================================
+// LOGIN - APENAS USUÁRIOS APROVADOS
+// ============================================
 const handleLogin = async (req, res) => {
     try {
+        console.log("🔐 [SISTEMA NOVO v2.0] Iniciando função de login");
+        console.log("🆕 [DEPLOY FORÇADO] HandleLogin executando - Sistema novo ativo!");
         const { email, password } = req.body;
         console.log("🔐 Tentativa de login:", { email });
         if (!email || !password) {
-            return res.status(400).json({
+            console.log("❌ [handleLogin] Campos obrigatórios não fornecidos");
+            res.status(400).json({
                 success: false,
-                message: "Email e senha são obrigatórios",
+                message: "SISTEMA NOVO - Email e senha são obrigatórios",
             });
+            return;
         }
+        console.log("🔌 [handleLogin] Obtendo conexão com banco...");
         // ✅ Obter pool de forma segura
         const pool = await database_1.default.getInstance();
-        // Buscar usuário no banco de dados
-        const [rows] = await pool.execute('SELECT id, nome, login, email, password, tipo, status FROM usuarios WHERE email = ?', [email]);
+        console.log("✅ [handleLogin] Conexão obtida com sucesso");
+        // Buscar usuário APENAS na tabela usuarios (somente aprovados)
+        console.log("🔍 [handleLogin] Buscando usuário na tabela usuarios...");
+        const [rows] = await pool.execute('SELECT id, nome_completo, login, email, senha_hash, tipo_usuario FROM usuarios WHERE email = ?', [email]);
         const users = rows;
+        console.log(`📋 [handleLogin] Usuários encontrados: ${users.length}`);
         if (users.length === 0) {
-            return res.status(404).json({
+            console.log("❌ [handleLogin] Usuário não encontrado");
+            res.status(404).json({
                 success: false,
-                message: "Usuário não encontrado. Verifique seu email."
+                message: "SISTEMA NOVO - Usuário não encontrado ou não aprovado. Verifique se sua conta foi aprovada pelo administrador."
             });
+            return;
         }
         const user = users[0];
-        // Verificar se o usuário está aprovado (para admins, sempre permitir)
-        if (user.tipo !== 'admin' && user.status !== 'aprovado') {
-            const statusMessages = {
-                'pendente': 'Sua conta ainda está pendente de aprovação pelo administrador.',
-                'rejeitado': 'Sua conta foi rejeitada pelo administrador.'
-            };
-            return res.status(403).json({
-                success: false,
-                message: statusMessages[user.status] || 'Status da conta inválido'
-            });
-        }
+        console.log(`👤 [handleLogin] Usuário encontrado: ${user.email}, tipo: ${user.tipo_usuario}`);
         // Verificar senha
-        const senhaCorreta = await bcrypt_1.default.compare(password, user.password);
-        if (!senhaCorreta) {
-            return res.status(401).json({
+        console.log("🔐 [handleLogin] Verificando senha...");
+        const passwordMatch = await bcrypt_1.default.compare(password, user.senha_hash);
+        if (!passwordMatch) {
+            console.log("❌ [handleLogin] Senha incorreta");
+            res.status(401).json({
                 success: false,
-                message: "Senha incorreta"
+                message: "Senha incorreta."
             });
+            return;
+        }
+        console.log("✅ Login bem-sucedido para:", user.email);
+        // SE FOR BOLSISTA, REGISTRAR ENTRADA AUTOMATICAMENTE
+        if (user.tipo_usuario === 'bolsista') {
+            try {
+                console.log("📝 [handleLogin] Registrando entrada automática para bolsista:", user.id);
+                // Verificar se já há entrada em aberto hoje
+                const hoje = new Date().toISOString().split('T')[0];
+                const [entradaAberta] = await pool.execute('SELECT id FROM registros_entrada WHERE usuario_id = ? AND data_entrada = ? AND hora_saida IS NULL', [user.id, hoje]);
+                if (!entradaAberta || entradaAberta.length === 0) {
+                    // Registrar nova entrada
+                    const agora = new Date();
+                    const horaAtual = agora.toTimeString().split(' ')[0];
+                    await pool.execute(`INSERT INTO registros_entrada (usuario_id, data_entrada, hora_entrada) 
+             VALUES (?, ?, ?)`, [user.id, hoje, horaAtual]);
+                    console.log(`✅ [handleLogin] Entrada registrada para bolsista ${user.id} às ${horaAtual}`);
+                }
+                else {
+                    console.log(`ℹ️ [handleLogin] Bolsista ${user.id} já tem entrada registrada hoje`);
+                }
+            }
+            catch (entradaError) {
+                console.error('❌ [handleLogin] Erro ao registrar entrada automática:', entradaError);
+                // Não falhar o login por causa do erro de entrada
+            }
         }
         // Atualizar último login
-        await pool.execute('UPDATE usuarios SET ultimo_login = CURRENT_TIMESTAMP WHERE id = ?', [user.id]);
-        // Preparar dados para enviar (sem a senha)
-        const { password: _, ...userWithoutPassword } = user;
-        // Gerar token simples (em produção use JWT)
-        const token = Buffer.from(JSON.stringify({
-            user_id: user.id,
-            email: user.email,
-            tipo: user.tipo,
-            timestamp: Date.now()
-        })).toString('base64');
-        return res.json({
+        try {
+            console.log("📝 [handleLogin] Atualizando último login...");
+            await pool.execute('UPDATE usuarios SET data_ultimo_login = CURRENT_TIMESTAMP WHERE id = ?', [user.id]);
+        }
+        catch (updateError) {
+            console.warn('⚠️ [handleLogin] Erro ao atualizar último login:', updateError);
+            // Não falhar o login por causa deste erro
+        }
+        // Determinar dashboard baseado no tipo de usuário
+        let redirectTo = '/dashboard'; // default
+        if (user.tipo_usuario === 'bolsista') {
+            redirectTo = '/bolsista-dashboard';
+        }
+        else if (user.tipo_usuario === 'responsavel') {
+            redirectTo = '/responsavel-dashboard';
+        }
+        else if (user.tipo_usuario === 'admin') {
+            redirectTo = '/admin';
+        }
+        console.log(`🔄 [handleLogin] Redirecionando ${user.tipo_usuario} para: ${redirectTo}`);
+        // Retorno do login bem-sucedido
+        res.status(200).json({
             success: true,
-            message: 'Login efetuado com sucesso',
-            user: userWithoutPassword,
-            token: token
+            message: "Login realizado com sucesso",
+            user: {
+                id: user.id,
+                nome: user.nome_completo,
+                email: user.email,
+                login: user.login,
+                tipo_usuario: user.tipo_usuario
+            },
+            redirectTo: redirectTo
         });
     }
     catch (error) {
-        console.error("❌ Erro no login:", error);
-        return handleDatabaseError(error, res);
+        console.error('❌ [handleLogin] Erro no login:', error);
+        console.error('❌ [handleLogin] Stack trace:', error.stack);
+        handleDatabaseError(error, res);
     }
 };
 exports.handleLogin = handleLogin;
+// ============================================
+// REGISTRO - VIA SOLICITAÇÕES 
+// ============================================
 const handleRegister = async (req, res) => {
     try {
+        console.log("📝 [SISTEMA NOVO v2.0] Iniciando função de registro");
+        console.log("🆕 [DEPLOY FORÇADO] HandleRegister executando - Sistema novo ativo!");
         const { nome, funcao, endereco, email, login, senha, tipoUsuario } = req.body;
         console.log("📝 Tentativa de registro:", { email, nome, funcao, tipoUsuario });
         // Validar campos obrigatórios básicos
         const camposObrigatorios = ['nome', 'email', 'login', 'senha', 'tipoUsuario'];
         for (const campo of camposObrigatorios) {
             if (!req.body[campo]) {
-                return res.status(400).json({
+                console.log(`❌ [handleRegister] Campo obrigatório não fornecido: ${campo}`);
+                res.status(400).json({
                     success: false,
                     message: `Campo '${campo}' é obrigatório`
                 });
+                return;
             }
         }
         // Validar campos específicos por tipo de usuário
         if (tipoUsuario === 'responsavel' && !funcao) {
-            return res.status(400).json({
+            console.log("❌ [handleRegister] Função obrigatória para responsáveis");
+            res.status(400).json({
                 success: false,
                 message: 'Campo "funcao" é obrigatório para responsáveis'
             });
+            return;
         }
         // Validar tipoUsuario
         if (!['responsavel', 'bolsista'].includes(tipoUsuario)) {
-            return res.status(400).json({
+            console.log("❌ [handleRegister] Tipo de usuário inválido:", tipoUsuario);
+            res.status(400).json({
                 success: false,
                 message: 'Tipo de usuário deve ser "responsavel" ou "bolsista"'
             });
+            return;
         }
         // Validar email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
-            return res.status(400).json({
+            console.log("❌ [handleRegister] Email inválido:", email);
+            res.status(400).json({
                 success: false,
                 message: 'Email inválido'
             });
+            return;
         }
         // Validar senha
         if (senha.length < 6) {
-            return res.status(400).json({
+            console.log("❌ [handleRegister] Senha muito curta");
+            res.status(400).json({
                 success: false,
                 message: 'Senha deve ter pelo menos 6 caracteres'
             });
+            return;
         }
+        console.log("🔌 [handleRegister] Obtendo conexão com banco...");
         // ✅ Obter pool de forma segura
         const pool = await database_1.default.getInstance();
-        // Verificar se email já existe
-        const [emailRows] = await pool.execute('SELECT id FROM usuarios WHERE email = ?', [email]);
-        if (emailRows.length > 0) {
-            return res.status(409).json({
+        console.log("✅ [handleRegister] Conexão obtida com sucesso");
+        // Verificar se email já existe nas duas tabelas
+        console.log("🔍 [handleRegister] Verificando duplicidade de email...");
+        const [emailUsuarios] = await pool.execute('SELECT id FROM usuarios WHERE email = ?', [email]);
+        const [emailSolicitacoes] = await pool.execute('SELECT id FROM solicitacoes WHERE email = ?', [email]);
+        if (emailUsuarios.length > 0 || emailSolicitacoes.length > 0) {
+            console.log("❌ [handleRegister] Email já existe:", email);
+            res.status(409).json({
                 success: false,
                 message: 'Email já cadastrado no sistema'
             });
+            return;
         }
-        // Verificar se login já existe
-        const [loginRows] = await pool.execute('SELECT id FROM usuarios WHERE login = ?', [login]);
-        if (loginRows.length > 0) {
-            return res.status(409).json({
+        // Verificar se login já existe nas duas tabelas
+        console.log("🔍 [handleRegister] Verificando duplicidade de login...");
+        const [loginUsuarios] = await pool.execute('SELECT id FROM usuarios WHERE login = ?', [login]);
+        const [loginSolicitacoes] = await pool.execute('SELECT id FROM solicitacoes WHERE login = ?', [login]);
+        if (loginUsuarios.length > 0 || loginSolicitacoes.length > 0) {
+            console.log("❌ [handleRegister] Login já existe:", login);
+            res.status(409).json({
                 success: false,
                 message: 'Login já está em uso'
             });
+            return;
         }
         // Criptografar senha
+        console.log("🔐 [handleRegister] Criptografando senha...");
         const senhaHash = await bcrypt_1.default.hash(senha, 10);
-        // Inserir novo usuário
-        const [result] = await pool.execute(`INSERT INTO usuarios (nome, funcao, endereco, email, login, password, tipo_usuario, tipo, status, data_criacao) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'usuario', 'pendente', CURRENT_TIMESTAMP)`, [nome, funcao, endereco, email, login, senhaHash, tipoUsuario]);
+        // Inserir na tabela solicitacoes (aguardando aprovação)
+        console.log("💾 [handleRegister] Salvando solicitação...");
+        const [result] = await pool.execute(`INSERT INTO solicitacoes (nome_completo, funcao, endereco, email, login, senha_hash, tipo_usuario, status, data_criacao) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'pendente', CURRENT_TIMESTAMP)`, [nome, funcao, endereco, email, login, senhaHash, tipoUsuario]);
         const insertResult = result;
         const novoId = insertResult.insertId;
-        // Buscar dados do usuário recém-criado
-        const [newUserRows] = await pool.execute(`SELECT 
-        id, 
-        nome as nomeCompleto,
-        funcao,
-        email, 
-        login, 
-        endereco,
-        tipo_usuario as tipoUsuario,
-        status,
-        DATE_FORMAT(data_criacao, '%Y/%m/%d') as dataSolicitacao
-       FROM usuarios 
-       WHERE id = ?`, [novoId]);
-        const novoUsuario = newUserRows[0];
-        novoUsuario.status = 'pendente';
-        return res.json({
+        console.log(`✅ [handleRegister] Solicitação criada com ID: ${novoId}`);
+        res.json({
             success: true,
-            message: 'Usuário registrado com sucesso! Aguarde a aprovação do administrador.',
-            data: novoUsuario
+            message: 'Solicitação de cadastro enviada com sucesso! Aguarde a aprovação do administrador.',
+            data: {
+                id: novoId,
+                nome: nome,
+                email: email,
+                login: login,
+                tipo_usuario: tipoUsuario,
+                status: 'pendente'
+            }
         });
     }
     catch (error) {
-        console.error("❌ Erro no registro:", error);
-        return handleDatabaseError(error, res);
+        console.error("❌ [handleRegister] Erro no registro:", error);
+        console.error("❌ [handleRegister] Stack trace:", error.stack);
+        handleDatabaseError(error, res);
     }
 };
 exports.handleRegister = handleRegister;
