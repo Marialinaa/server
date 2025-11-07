@@ -186,11 +186,13 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
 // ============================================
 export const handleRegister = async (req: Request, res: Response): Promise<void> => {
   try {
-    console.log("📝 [SISTEMA NOVO v2.0] Iniciando função de registro");
-    console.log("🆕 [DEPLOY FORÇADO] HandleRegister executando - Sistema novo ativo!");
+    console.log("📝 [SISTEMA NOVO v3.0] Iniciando função de registro");
+    console.log("🆕 [DEPLOY FORÇADO] HandleRegister executando - COM DEBUG!");
+    console.log("📋 [DEBUG] req.body completo:", JSON.stringify(req.body, null, 2));
     
     const { nome, email, login, senha, tipoUsuario, funcao } = req.body;
     console.log("📝 Tentativa de registro:", { email, nome, tipoUsuario });
+    console.log("🔍 [DEBUG] Valores extraídos:", { nome, email, login, senha: senha ? '***' : 'undefined', tipoUsuario });
 
     // Validar campos obrigatórios básicos
     const camposObrigatorios = ['nome', 'email', 'login', 'senha', 'tipoUsuario'];
@@ -328,8 +330,17 @@ export const handleRegister = async (req: Request, res: Response): Promise<void>
     res.status(200).send(JSON.stringify(responseData));
 
   } catch (error: any) {
-    console.error("❌ [handleRegister] Erro no registro:", error);
-    console.error("❌ [handleRegister] Stack trace:", error.stack);
-    handleDatabaseError(error, res);
+    console.error("❌ [handleRegister] ERRO DETALHADO:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      code: error.code
+    });
+    
+    res.status(500).json({
+      success: false,
+      message: `Erro no registro: ${error.message}`,
+      debug: error.name
+    });
   }
 };
