@@ -19,4 +19,3 @@ router.post('/bolsista', usuariosController_1.default.criarBolsista);
 // Listar solicitações pendentes
 router.get('/solicitacoes/pendentes', usuariosController_1.default.listarSolicitacoes);
 exports.default = router;
-//# sourceMappingURL=usuariosRoutes.js.map

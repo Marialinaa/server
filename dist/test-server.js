@@ -55,4 +55,3 @@ process.on('SIGINT', () => {
     process.exit(0);
 });
 console.log('🔍 Servidor mínimo iniciado para diagnóstico');
-//# sourceMappingURL=test-server.js.map

@@ -62,6 +62,30 @@ router.post('/test-redirect', (_req, res) => {
         timestamp: new Date().toISOString()
     });
 });
+// Rota de debug para verificar estrutura da tabela
+router.post('/debug/sql', async (req, res) => {
+    try {
+        const DatabaseConnection = await Promise.resolve().then(() => __importStar(require('../utils/db')));
+        const pool = await DatabaseConnection.default.getInstance();
+        console.log('🔍 [DEBUG-SQL] Executando:', req.body.sql);
+        const [rows] = await pool.execute(req.body.sql);
+        res.json({
+            success: true,
+            message: 'SQL executado com sucesso',
+            data: rows,
+            timestamp: new Date().toISOString()
+        });
+    }
+    catch (error) {
+        console.error('❌ [DEBUG-SQL] Erro:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Erro executando SQL',
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
 // Rota de teste para email
 router.post('/test-email', async (_req, res) => {
     try {
@@ -164,4 +188,3 @@ router.use('/usuarios', usuariosRoutes_1.default);
 router.use('/atribuicoes', atribuicoesRoutes_1.default);
 router.use('/horarios', horariosRoutes_1.default);
 exports.default = router;
-//# sourceMappingURL=index.js.map

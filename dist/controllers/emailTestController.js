@@ -41,4 +41,3 @@ const testarEmail = async (_req, res) => {
     }
 };
 exports.testarEmail = testarEmail;
-//# sourceMappingURL=emailTestController.js.map

@@ -245,4 +245,3 @@ const handleGetUser = async (req, res) => {
     }
 };
 exports.handleGetUser = handleGetUser;
-//# sourceMappingURL=users.js.map

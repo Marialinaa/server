@@ -13,4 +13,3 @@ router.post('/saida', registrosController_1.default.registrarSaida);
 // Listar registros de entrada/saída com filtros
 router.get('/', registrosController_1.default.listarRegistros);
 exports.default = router;
-//# sourceMappingURL=registrosRoutes.js.map

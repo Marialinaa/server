@@ -4,12 +4,12 @@
   "description": "Backend API for Aura-Hub (Node + TypeScript + Express + MySQL)",
   "main": "index.js",
   "scripts": {
-    "clean": "rm -rf dist node_modules package-lock.json",
+    "clean": "rimraf dist node_modules package-lock.json",
     "prebuild": "npm install --include=dev",
-    "build": "echo 'Starting TypeScript build...' && npm run clean-dist && npx tsc --skipLibCheck --verbose && echo 'Build completed successfully!'",
-    "clean-dist": "rm -rf dist",
-    "postbuild": "echo 'TypeScript compilation finished' && ls -la dist/ || echo 'No dist directory found'",
-    "start": "echo 'Starting server...' && node dist/index.js || node index.js",
+    "build": "echo Starting TypeScript build... && npm run clean-dist && npx tsc --skipLibCheck && echo Build completed successfully!",
+    "clean-dist": "rimraf dist",
+    "postbuild": "echo TypeScript compilation finished && dir dist 2>nul || echo No dist directory found",
+    "start": "echo Starting server... && node dist/index.js || node index.js",
     "dev": "ts-node-dev --respawn --transpile-only index.ts"
   },
   "keywords": [
@@ -43,6 +43,7 @@
     "typescript": "^5.3.3"
   },
   "devDependencies": {
+    "rimraf": "^6.1.0",
     "ts-node-dev": "^2.0.0"
   },
   "engines": {

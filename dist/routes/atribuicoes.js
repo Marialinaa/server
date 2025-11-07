@@ -224,4 +224,3 @@ const handleDeleteAtribuicao = async (req, res) => {
     }
 };
 exports.handleDeleteAtribuicao = handleDeleteAtribuicao;
-//# sourceMappingURL=atribuicoes.js.map

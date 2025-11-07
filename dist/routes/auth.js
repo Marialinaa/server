@@ -278,4 +278,3 @@ const handleRegister = async (req, res) => {
     }
 };
 exports.handleRegister = handleRegister;
-//# sourceMappingURL=auth.js.map

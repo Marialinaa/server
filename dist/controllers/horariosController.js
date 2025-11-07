@@ -192,4 +192,3 @@ exports.default = {
     buscarHorarioHoje: exports.buscarHorarioHoje,
     obterEstatisticas: exports.obterEstatisticas
 };
-//# sourceMappingURL=horariosController.js.map

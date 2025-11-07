@@ -81,4 +81,3 @@ const notificarUsuarioRejeitado = async (params) => {
     return (0, exports.sendEmail)({ to: dest, subject: 'Solicitação não aprovada', html });
 };
 exports.notificarUsuarioRejeitado = notificarUsuarioRejeitado;
-//# sourceMappingURL=email.js.map

@@ -123,4 +123,3 @@ const templates = {
     }
 };
 exports.default = templates;
-//# sourceMappingURL=emailTemplates.js.map

@@ -241,4 +241,3 @@ exports.default = {
     listarSolicitacoes,
     atualizarUsuario
 };
-//# sourceMappingURL=usuariosController.js.map

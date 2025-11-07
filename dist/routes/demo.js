@@ -6,4 +6,3 @@ const handleDemo = (_req, res) => {
     res.json({ message: "Demo route works!" });
 };
 exports.handleDemo = handleDemo;
-//# sourceMappingURL=demo.js.map

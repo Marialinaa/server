@@ -95,4 +95,3 @@ const HorarioModel = {
     }
 };
 exports.default = HorarioModel;
-//# sourceMappingURL=Horario.js.map

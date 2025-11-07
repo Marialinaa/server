@@ -13,4 +13,3 @@ router.get('/', atribuicoesController_1.default.listarAtribuicoes);
 // Obter atribuição específica pelo ID
 router.get('/:id', atribuicoesController_1.default.getAtribuicao);
 exports.default = router;
-//# sourceMappingURL=atribuicoesRoutes.js.map

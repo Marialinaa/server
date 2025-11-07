@@ -14,4 +14,3 @@ router.get('/test', (_req, res) => {
     });
 });
 exports.default = router;
-//# sourceMappingURL=usuariosRoutes.test.js.map

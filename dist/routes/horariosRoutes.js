@@ -50,4 +50,3 @@ router.get('/hoje/:bolsista_id', horariosController.buscarHorarioHoje);
 // Obter estatísticas de horários
 router.get('/estatisticas', horariosController.obterEstatisticas);
 exports.default = router;
-//# sourceMappingURL=horariosRoutes.js.map

@@ -152,4 +152,3 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 // Iniciar servidor
 startServer();
 exports.default = app;
-//# sourceMappingURL=index.js.map

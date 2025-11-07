@@ -101,26 +101,33 @@ const UserModel = {
         try {
             // ✅ Obter pool de forma segura
             const pool = await db_1.default.getInstance();
-            // Remover 'status' pois não existe na tabela usuarios
-            const fields = ['nome_completo', 'email', 'login', 'senha_hash', 'tipo_usuario', 'data_criacao'];
+            console.log('🔍 [UserModel.create] Pool obtido com sucesso');
+            // Usar apenas campos que existem na tabela (sem data_criacao que pode não existir)
+            const fields = ['nome_completo', 'email', 'login', 'senha_hash', 'tipo_usuario'];
             const values = [
                 (_a = data.nome_completo) !== null && _a !== void 0 ? _a : null,
                 (_b = data.email) !== null && _b !== void 0 ? _b : null,
                 (_c = data.login) !== null && _c !== void 0 ? _c : null,
                 (_d = data.senha_hash) !== null && _d !== void 0 ? _d : null,
-                (_e = data.tipo_usuario) !== null && _e !== void 0 ? _e : null,
-                new Date()
+                (_e = data.tipo_usuario) !== null && _e !== void 0 ? _e : null
             ];
             const placeholders = fields.map(() => '?').join(',');
             const sql = `INSERT INTO usuarios (${fields.join(',')}) VALUES (${placeholders})`;
             console.log('🔍 [UserModel.create] SQL:', sql);
             console.log('🔍 [UserModel.create] Values:', values);
             const [result] = await pool.execute(sql, values);
+            console.log('🔍 [UserModel.create] Result:', result);
             const insertId = result.insertId || result.insert_id;
-            return { id: insertId, ...data };
+            console.log('🔍 [UserModel.create] Insert ID:', insertId);
+            if (!insertId) {
+                throw new Error('Falha ao obter ID do usuário inserido');
+            }
+            const createdUser = { id: insertId, ...data };
+            console.log('✅ [UserModel.create] Usuário criado com sucesso:', createdUser);
+            return createdUser;
         }
         catch (error) {
-            console.error('UserModel.create error', error);
+            console.error('❌ [UserModel.create] Erro completo:', error);
             throw error;
         }
     },
@@ -151,4 +158,3 @@ const UserModel = {
     }
 };
 exports.default = UserModel;
-//# sourceMappingURL=User.js.map

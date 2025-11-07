@@ -150,4 +150,3 @@ const testDatabaseConnection = async () => {
 exports.testDatabaseConnection = testDatabaseConnection;
 const pool = (0, exports.createPool)();
 exports.default = pool;
-//# sourceMappingURL=database.js.map

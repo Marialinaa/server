@@ -38,4 +38,3 @@ exports.default = db_2.default;
 // NOTA: Código novo deve usar:
 // import DatabaseConnection from '../database';
 // const pool = await DatabaseConnection.getInstance();
-//# sourceMappingURL=database.js.map

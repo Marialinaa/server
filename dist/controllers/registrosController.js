@@ -186,4 +186,3 @@ exports.default = {
     registrarSaida,
     listarRegistros
 };
-//# sourceMappingURL=registrosController.js.map

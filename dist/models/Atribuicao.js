@@ -72,4 +72,3 @@ const AtribuicaoModel = {
     }
 };
 exports.default = AtribuicaoModel;
-//# sourceMappingURL=Atribuicao.js.map

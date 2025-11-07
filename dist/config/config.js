@@ -21,4 +21,3 @@ const config = {
     apiUrl: exports.API_URL,
 };
 exports.default = config;
-//# sourceMappingURL=config.js.map

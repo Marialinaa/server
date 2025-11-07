@@ -247,4 +247,3 @@ async function rejectUser(req, res) {
         return handleDatabaseError(error, res);
     }
 }
-//# sourceMappingURL=authController.js.map

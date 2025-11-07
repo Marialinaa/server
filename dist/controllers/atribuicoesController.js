@@ -108,4 +108,3 @@ exports.default = {
     listarAtribuicoes,
     getAtribuicao
 };
-//# sourceMappingURL=atribuicoesController.js.map

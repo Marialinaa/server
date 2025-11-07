@@ -172,4 +172,3 @@ const handleGetUser = async (req, res) => {
     }
 };
 exports.handleGetUser = handleGetUser;
-//# sourceMappingURL=users_new.js.map

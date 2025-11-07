@@ -162,4 +162,3 @@ exports.pool = new Proxy({}, {
         return instance[prop];
     }
 });
-//# sourceMappingURL=db.js.map

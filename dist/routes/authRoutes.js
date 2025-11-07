@@ -19,4 +19,3 @@ router.post('/reject', (_req, res) => {
     res.status(501).json({ success: false, message: 'Função ainda não implementada' });
 });
 exports.default = router;
-//# sourceMappingURL=authRoutes.js.map

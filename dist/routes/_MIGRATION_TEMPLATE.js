@@ -90,4 +90,3 @@ export const minhaFuncao = async (req, res) => {
 };
 
 */
-//# sourceMappingURL=_MIGRATION_TEMPLATE.js.map

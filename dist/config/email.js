@@ -60,8 +60,15 @@ const createTransporter = () => {
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASSWORD
+        },
+        // Configurações para resolver timeout
+        connectionTimeout: 30000, // 30 segundos
+        greetingTimeout: 10000, // 10 segundos
+        socketTimeout: 30000, // 30 segundos
+        // Configurações adicionais para Gmail
+        tls: {
+            rejectUnauthorized: false
         }
     });
 };
 exports.createTransporter = createTransporter;
-//# sourceMappingURL=email.js.map

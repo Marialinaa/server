@@ -60,4 +60,3 @@ const errorHandler = (err, req, res, _next) => {
 };
 exports.errorHandler = errorHandler;
 exports.default = { ApiError, httpErrors: exports.httpErrors, asyncHandler: exports.asyncHandler, errorHandler: exports.errorHandler };
-//# sourceMappingURL=errorHandler.js.map
