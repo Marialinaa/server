@@ -147,14 +147,14 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
       { expiresIn: '24h' }
     );
 
-    // Criar resposta com redirectTo HARDCODED ADMIN TEST
+    // Criar resposta com redirectTo
     const responseData = {
       success: true,
       message: "Login realizado com sucesso",
       token: token,
-      testField: "TESTE_CAMPO_EXTRA",
-      debug: "FUNÇÃO_SENDO_EXECUTADA",
-      redirectTo: "/admin",
+      redirectTo: user.tipo_usuario === 'admin' ? '/admin' : 
+                 user.tipo_usuario === 'bolsista' ? '/bolsista-dashboard' : 
+                 '/responsavel-dashboard',
       user: {
         id: user.id,
         nome_completo: user.nome_completo,
@@ -167,9 +167,12 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
     };
 
     console.log('🚀 [handleLogin] RESPONSE FINAL:', JSON.stringify(responseData, null, 2));
+    console.log('🔍 [handleLogin] redirectTo specifically:', responseData.redirectTo);
+    console.log('🔍 [handleLogin] Object keys:', Object.keys(responseData));
 
-    // Retorno do login bem-sucedido
-    res.status(200).json(responseData);
+    // Retorno do login bem-sucedido - tentar com header explícito
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).send(JSON.stringify(responseData));
 
   } catch (error: any) {
     console.error('❌ [handleLogin] Erro no login:', error);
