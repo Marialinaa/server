@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: aura-hub-api
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_HOST
+        value: mysql-dce0863-marialina9728-c7ca.f.aivencloud.com
+      - key: DB_PORT
+        value: "21927"
+      - key: DB_USER
+        value: avnadmin
+      - key: DB_PASSWORD
+        value: AVNS_6-OLpvd-KTxk4A9TZD9
+      - key: DB_NAME
+        value: defaultdb
+      - key: EMAIL_HOST
+        value: smtp.gmail.com
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_USER
+        value: mariaxxlina@gmail.com
+      - key: EMAIL_PASSWORD
+        value: ljve epka bsqv axkc
+      - key: ADMIN_EMAIL
+        value: mariaxxlina@gmail.com
+      - key: JWT_SECRET
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30
+      - key: CORS_ORIGIN
+        value: https://aura-hubb.netlify.app,http://localhost:5173
