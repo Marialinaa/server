@@ -2,9 +2,9 @@
   "name": "aura-hub-server",
   "version": "1.0.1",
   "description": "Backend API for Aura-Hub (Node + TypeScript + Express + MySQL)",
-  "main": "dist/index.js",
+  "main": "index.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": "ts-node-dev --respawn --transpile-only index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint . --ext .ts",
