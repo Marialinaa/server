@@ -27,8 +27,8 @@ function handleDatabaseError(error, res) {
 // ============================================
 const handleLogin = async (req, res) => {
     try {
-        console.log("🔐 [SISTEMA NOVO v2.0] Iniciando função de login");
-        console.log("🆕 [DEPLOY FORÇADO] HandleLogin executando - Sistema novo ativo!");
+        console.log("🔐 [SISTEMA NOVO v3.0] Iniciando função de login - DIRECT ROUTE!");
+        console.log("🆕 [DEPLOY FORÇADO] HandleLogin executando - REDIRECTO TESTING!");
         const { email, password } = req.body;
         console.log("🔐 Tentativa de login:", { email });
         if (!email || !password) {
@@ -115,11 +115,17 @@ const handleLogin = async (req, res) => {
             redirectTo = '/admin';
         }
         console.log(`🔄 [handleLogin] Redirecionando ${user.tipo_usuario} para: ${redirectTo}`);
-        // Criar resposta com redirectTo
+        // Importar JWT dinamicamente
+        const jwt = require('jsonwebtoken');
+        const token = jwt.sign({ id: user.id, email: user.email, tipo_usuario: user.tipo_usuario }, process.env.JWT_SECRET || 'secret-jwt-key', { expiresIn: '24h' });
+        // Criar resposta com redirectTo HARDCODED ADMIN TEST
         const responseData = {
             success: true,
             message: "Login realizado com sucesso",
-            token: require('jsonwebtoken').sign({ id: user.id, email: user.email, tipo_usuario: user.tipo_usuario }, process.env.JWT_SECRET || 'secret-jwt-key', { expiresIn: '24h' }),
+            token: token,
+            testField: "TESTE_CAMPO_EXTRA",
+            debug: "FUNÇÃO_SENDO_EXECUTADA",
+            redirectTo: "/admin",
             user: {
                 id: user.id,
                 nome_completo: user.nome_completo,
@@ -128,8 +134,7 @@ const handleLogin = async (req, res) => {
                 tipo_usuario: user.tipo_usuario,
                 data_criacao: user.data_criacao,
                 ultimo_acesso: new Date().toISOString()
-            },
-            redirectTo: redirectTo
+            }
         };
         console.log('🚀 [handleLogin] RESPONSE FINAL:', JSON.stringify(responseData, null, 2));
         // Retorno do login bem-sucedido

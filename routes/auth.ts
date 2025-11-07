@@ -152,6 +152,9 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
       success: true,
       message: "Login realizado com sucesso",
       token: token,
+      testField: "TESTE_CAMPO_EXTRA",
+      debug: "FUNÇÃO_SENDO_EXECUTADA",
+      redirectTo: "/admin",
       user: {
         id: user.id,
         nome_completo: user.nome_completo,
@@ -160,8 +163,7 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
         tipo_usuario: user.tipo_usuario,
         data_criacao: user.data_criacao,
         ultimo_acesso: new Date().toISOString()
-      },
-      redirectTo: user.tipo_usuario === 'admin' ? '/admin' : (user.tipo_usuario === 'bolsista' ? '/bolsista-dashboard' : '/responsavel-dashboard')
+      }
     };
 
     console.log('🚀 [handleLogin] RESPONSE FINAL:', JSON.stringify(responseData, null, 2));
