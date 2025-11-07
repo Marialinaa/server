@@ -139,19 +139,31 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
 
     console.log(`🔄 [handleLogin] Redirecionando ${user.tipo_usuario} para: ${redirectTo}`);
 
-    // Retorno do login bem-sucedido
-    res.status(200).json({
+    // Criar resposta com redirectTo
+    const responseData = {
       success: true,
       message: "Login realizado com sucesso",
+      token: require('jsonwebtoken').sign(
+        { id: user.id, email: user.email, tipo_usuario: user.tipo_usuario },
+        process.env.JWT_SECRET || 'secret-jwt-key',
+        { expiresIn: '24h' }
+      ),
       user: {
         id: user.id,
-        nome: user.nome_completo,
+        nome_completo: user.nome_completo,
         email: user.email,
         login: user.login,
-        tipo_usuario: user.tipo_usuario
+        tipo_usuario: user.tipo_usuario,
+        data_criacao: user.data_criacao,
+        ultimo_acesso: new Date().toISOString()
       },
       redirectTo: redirectTo
-    });
+    };
+
+    console.log('🚀 [handleLogin] RESPONSE FINAL:', JSON.stringify(responseData, null, 2));
+
+    // Retorno do login bem-sucedido
+    res.status(200).json(responseData);
 
   } catch (error: any) {
     console.error('❌ [handleLogin] Erro no login:', error);

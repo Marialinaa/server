@@ -1,6 +1,6 @@
 {
   "name": "aura-hub-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Backend API for Aura-Hub (Node + TypeScript + Express + MySQL)",
   "main": "dist/index.js",
   "scripts": {
