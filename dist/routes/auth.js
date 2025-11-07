@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleRegister = exports.handleLogin = void 0;
-const database_1 = __importDefault(require("../database"));
+const db_1 = __importDefault(require("../utils/db"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 // ============================================
 // HELPER: Tratamento centralizado de erros
@@ -41,7 +41,7 @@ const handleLogin = async (req, res) => {
         }
         console.log("🔌 [handleLogin] Obtendo conexão com banco...");
         // ✅ Obter pool de forma segura
-        const pool = await database_1.default.getInstance();
+        const pool = await db_1.default.getInstance();
         console.log("✅ [handleLogin] Conexão obtida com sucesso");
         // Buscar usuário APENAS na tabela usuarios (somente aprovados)
         console.log("🔍 [handleLogin] Buscando usuário na tabela usuarios...");
@@ -155,10 +155,12 @@ exports.handleLogin = handleLogin;
 // ============================================
 const handleRegister = async (req, res) => {
     try {
-        console.log("📝 [SISTEMA NOVO v2.0] Iniciando função de registro");
-        console.log("🆕 [DEPLOY FORÇADO] HandleRegister executando - Sistema novo ativo!");
-        const { nome, funcao, endereco, email, login, senha, tipoUsuario } = req.body;
-        console.log("📝 Tentativa de registro:", { email, nome, funcao, tipoUsuario });
+        console.log("📝 [SISTEMA NOVO v3.0] Iniciando função de registro");
+        console.log("🆕 [DEPLOY FORÇADO] HandleRegister executando - COM DEBUG!");
+        console.log("📋 [DEBUG] req.body completo:", JSON.stringify(req.body, null, 2));
+        const { nome, email, login, senha, tipoUsuario, funcao } = req.body;
+        console.log("📝 Tentativa de registro:", { email, nome, tipoUsuario });
+        console.log("🔍 [DEBUG] Valores extraídos:", { nome, email, login, senha: senha ? '***' : 'undefined', tipoUsuario });
         // Validar campos obrigatórios básicos
         const camposObrigatorios = ['nome', 'email', 'login', 'senha', 'tipoUsuario'];
         for (const campo of camposObrigatorios) {
@@ -210,7 +212,7 @@ const handleRegister = async (req, res) => {
         }
         console.log("🔌 [handleRegister] Obtendo conexão com banco...");
         // ✅ Obter pool de forma segura
-        const pool = await database_1.default.getInstance();
+        const pool = await db_1.default.getInstance();
         console.log("✅ [handleRegister] Conexão obtida com sucesso");
         // Verificar se email já existe nas duas tabelas
         console.log("🔍 [handleRegister] Verificando duplicidade de email...");
@@ -241,12 +243,12 @@ const handleRegister = async (req, res) => {
         const senhaHash = await bcrypt_1.default.hash(senha, 10);
         // Inserir na tabela solicitacoes (aguardando aprovação)
         console.log("💾 [handleRegister] Salvando solicitação...");
-        const [result] = await pool.execute(`INSERT INTO solicitacoes (nome_completo, funcao, endereco, email, login, senha_hash, tipo_usuario, status, data_criacao) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'pendente', CURRENT_TIMESTAMP)`, [nome, funcao, endereco, email, login, senhaHash, tipoUsuario]);
+        const [result] = await pool.execute(`INSERT INTO solicitacoes (nome_completo, email, login, senha_hash, tipo_usuario, status, data_solicitacao) 
+       VALUES (?, ?, ?, ?, ?, 'pendente', CURRENT_TIMESTAMP)`, [nome, email, login, senhaHash, tipoUsuario]);
         const insertResult = result;
         const novoId = insertResult.insertId;
         console.log(`✅ [handleRegister] Solicitação criada com ID: ${novoId}`);
-        res.json({
+        const responseData = {
             success: true,
             message: 'Solicitação de cadastro enviada com sucesso! Aguarde a aprovação do administrador.',
             data: {
@@ -257,12 +259,22 @@ const handleRegister = async (req, res) => {
                 tipo_usuario: tipoUsuario,
                 status: 'pendente'
             }
-        });
+        };
+        res.setHeader('Content-Type', 'application/json');
+        res.status(200).send(JSON.stringify(responseData));
     }
     catch (error) {
-        console.error("❌ [handleRegister] Erro no registro:", error);
-        console.error("❌ [handleRegister] Stack trace:", error.stack);
-        handleDatabaseError(error, res);
+        console.error("❌ [handleRegister] ERRO DETALHADO:", {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+            code: error.code
+        });
+        res.status(500).json({
+            success: false,
+            message: `Erro no registro: ${error.message}`,
+            debug: error.name
+        });
     }
 };
 exports.handleRegister = handleRegister;

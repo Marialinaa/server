@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import DatabaseConnection from '../database';
+import DatabaseConnection from '../utils/db';
 import { notificarUsuarioAprovado, notificarUsuarioRejeitado } from '../email';
 import type { User, ApiResponse } from "../shared/types";
 

@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -18,6 +51,81 @@ router.get('/test', (_req, res) => {
         timestamp: new Date().toISOString(),
         port: process.env.PORT || 3005
     });
+});
+// Rota de teste para redirectTo
+router.post('/test-redirect', (_req, res) => {
+    res.json({
+        success: true,
+        message: 'Teste de redirectTo',
+        redirectTo: '/admin',
+        testField: 'TESTE_FUNCIONANDO',
+        timestamp: new Date().toISOString()
+    });
+});
+// Rota de teste para email
+router.post('/test-email', async (_req, res) => {
+    try {
+        const { sendEmail, notificarAdminNovoUsuario } = await Promise.resolve().then(() => __importStar(require('../email')));
+        console.log('📧 [TEST] Testando função de email...');
+        // Testar email simples
+        const resultadoSimples = await sendEmail('mariaxxlina@gmail.com', 'Teste de Email - Sistema Funcionando', '<h1>✅ Sistema de Email Funcionando!</h1><p>Este é um teste para verificar se o email está sendo enviado corretamente.</p>');
+        console.log('📧 [TEST] Resultado email simples:', resultadoSimples);
+        // Testar notificação de admin
+        const resultadoAdmin = await notificarAdminNovoUsuario({
+            nome: 'Usuario Teste Email',
+            tipo_usuario: 'bolsista',
+            email: 'teste@exemplo.com',
+            login: 'teste123'
+        });
+        console.log('📧 [TEST] Resultado notificação admin:', resultadoAdmin);
+        res.json({
+            success: true,
+            message: 'Teste de email executado',
+            resultados: {
+                emailSimples: resultadoSimples,
+                notificacaoAdmin: resultadoAdmin
+            },
+            timestamp: new Date().toISOString()
+        });
+    }
+    catch (error) {
+        console.error('❌ [TEST] Erro no teste de email:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Erro no teste de email',
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+// Rota de teste para registro
+router.post('/test-register', (req, res) => {
+    console.log('📋 [TEST-REGISTER] Requisição recebida:', req.body);
+    res.json({
+        success: true,
+        message: 'Teste de registro funcionando',
+        body: req.body,
+        timestamp: new Date().toISOString()
+    });
+});
+// Teste simplificado de auth/register
+router.post('/simple-register', async (req, res) => {
+    try {
+        console.log('🧪 [SIMPLE-REGISTER] Iniciando teste simples...');
+        console.log('📋 [SIMPLE-REGISTER] Body:', req.body);
+        res.json({
+            success: true,
+            message: 'Função de registro simplificada funcionando',
+            receivedData: req.body
+        });
+    }
+    catch (error) {
+        console.error('❌ [SIMPLE-REGISTER] Erro:', error);
+        res.status(500).json({
+            success: false,
+            message: `Erro: ${error.message}`
+        });
+    }
 });
 // Rota que retorna configuração útil para clientes em desenvolvimento
 // Detecta o IP local da máquina para facilitar o uso do frontend em outros dispositivos na mesma rede

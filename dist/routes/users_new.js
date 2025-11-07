@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleGetUser = exports.handleUpdateUserStatus = exports.handleListUsers = void 0;
-const database_1 = __importDefault(require("../database"));
+const db_1 = __importDefault(require("../utils/db"));
 const email_1 = require("../email");
 // ============================================
 // HELPER: Tratamento centralizado de erros
@@ -27,7 +27,7 @@ const handleListUsers = async (_req, res) => {
     try {
         console.log("🔍 Buscando usuários do banco de dados...");
         // ✅ Obter pool de forma segura
-        const pool = await database_1.default.getInstance();
+        const pool = await db_1.default.getInstance();
         const [rows] = await pool.execute(`SELECT 
         id, 
         nome as nomeCompleto, 
@@ -71,7 +71,7 @@ const handleUpdateUserStatus = async (req, res) => {
             });
         }
         // ✅ Obter pool de forma segura
-        const pool = await database_1.default.getInstance();
+        const pool = await db_1.default.getInstance();
         // Buscar dados do usuário antes de atualizar
         const [userRows] = await pool.execute('SELECT id, nome, email, login, status FROM usuarios WHERE id = ?', [id]);
         const users = userRows;
@@ -140,7 +140,7 @@ const handleGetUser = async (req, res) => {
         const { id } = req.params;
         console.log("🔍 Buscando usuário específico:", id);
         // ✅ Obter pool de forma segura
-        const pool = await database_1.default.getInstance();
+        const pool = await db_1.default.getInstance();
         const [rows] = await pool.execute(`SELECT 
         id, 
         nome as nomeCompleto, 

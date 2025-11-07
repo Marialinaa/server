@@ -8,7 +8,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.exemploFuncao = void 0;
-const database_1 = __importDefault(require("../database"));
+const db_1 = __importDefault(require("../utils/db"));
 // ============================================
 // HELPER: Tratamento centralizado de erros
 // ============================================
@@ -31,7 +31,7 @@ function handleDatabaseError(error, res) {
 const exemploFuncao = async (_req, res) => {
     try {
         // ✅ Obter pool de forma segura
-        const pool = await database_1.default.getInstance();
+        const pool = await db_1.default.getInstance();
         // Suas queries aqui
         const [rows] = await pool.execute('SELECT * FROM tabela');
         return res.json({

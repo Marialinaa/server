@@ -1,6 +1,6 @@
 // server/routes/auth.ts
 import { Request, Response } from "express";
-import DatabaseConnection from '../database';
+import DatabaseConnection from '../utils/db';
 import bcrypt from 'bcrypt';
 
 // ============================================

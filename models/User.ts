@@ -119,10 +119,23 @@ const UserModel = {
       // ✅ Obter pool de forma segura
       const pool = await DatabaseConnection.getInstance();
 
-      const fields = ['nome_completo','email','login','senha_hash','tipo_usuario','status'];
-      const values = fields.map(f => (data as any)[f] ?? null);
+      // Remover 'status' pois não existe na tabela usuarios
+      const fields = ['nome_completo','email','login','senha_hash','tipo_usuario','data_criacao'];
+      const values = [
+        data.nome_completo ?? null,
+        data.email ?? null,
+        data.login ?? null,
+        data.senha_hash ?? null,
+        data.tipo_usuario ?? null,
+        new Date()
+      ];
+      
       const placeholders = fields.map(() => '?').join(',');
       const sql = `INSERT INTO usuarios (${fields.join(',')}) VALUES (${placeholders})`;
+      
+      console.log('🔍 [UserModel.create] SQL:', sql);
+      console.log('🔍 [UserModel.create] Values:', values);
+      
       const [result]: any = await pool.execute(sql, values);
       const insertId = result.insertId || (result as any).insert_id;
       return { id: insertId, ...data };

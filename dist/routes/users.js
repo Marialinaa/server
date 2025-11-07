@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleGetUser = exports.handleUpdateUserStatus = exports.handleListUsers = void 0;
-const database_1 = __importDefault(require("../database"));
+const db_1 = __importDefault(require("../utils/db"));
 const email_1 = require("../email");
 // ============================================
 // HELPER: Tratamento centralizado de erros
@@ -27,7 +27,7 @@ const handleListUsers = async (_req, res) => {
     try {
         console.log("🔍 Buscando usuários das tabelas separadas...");
         // ✅ Obter pool de forma segura
-        const pool = await database_1.default.getInstance();
+        const pool = await db_1.default.getInstance();
         const usuarios = [];
         // Buscar responsáveis
         const [responsaveisRows] = await pool.execute(`SELECT 
@@ -114,7 +114,7 @@ const handleUpdateUserStatus = async (req, res) => {
         let user = null;
         let tipoUsuario = '';
         // ✅ Obter pool de forma segura
-        const pool = await database_1.default.getInstance();
+        const pool = await db_1.default.getInstance();
         // Tentar encontrar o usuário na tabela de responsáveis
         const [responsavelRows] = await pool.execute('SELECT id, nome, email, login, status FROM responsaveis WHERE id = ?', [id]);
         if (responsavelRows.length > 0) {
@@ -213,7 +213,7 @@ const handleGetUser = async (req, res) => {
         const { id } = req.params;
         console.log("🔍 Buscando usuário específico:", id);
         // ✅ Obter pool de forma segura
-        const pool = await database_1.default.getInstance();
+        const pool = await db_1.default.getInstance();
         const [rows] = await pool.execute(`SELECT 
         id, 
         nome as nomeCompleto, 
