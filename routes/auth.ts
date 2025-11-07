@@ -189,8 +189,8 @@ export const handleRegister = async (req: Request, res: Response): Promise<void>
     console.log("📝 [SISTEMA NOVO v2.0] Iniciando função de registro");
     console.log("🆕 [DEPLOY FORÇADO] HandleRegister executando - Sistema novo ativo!");
     
-    const { nome, funcao, endereco, email, login, senha, tipoUsuario } = req.body;
-    console.log("📝 Tentativa de registro:", { email, nome, funcao, tipoUsuario });
+    const { nome, email, login, senha, tipoUsuario, funcao } = req.body;
+    console.log("📝 Tentativa de registro:", { email, nome, tipoUsuario });
 
     // Validar campos obrigatórios básicos
     const camposObrigatorios = ['nome', 'email', 'login', 'senha', 'tipoUsuario'];
@@ -301,9 +301,9 @@ export const handleRegister = async (req: Request, res: Response): Promise<void>
     // Inserir na tabela solicitacoes (aguardando aprovação)
     console.log("💾 [handleRegister] Salvando solicitação...");
     const [result] = await pool.execute(
-      `INSERT INTO solicitacoes (nome_completo, funcao, endereco, email, login, senha_hash, tipo_usuario, status, data_criacao) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'pendente', CURRENT_TIMESTAMP)`,
-      [nome, funcao, endereco, email, login, senhaHash, tipoUsuario]
+      `INSERT INTO solicitacoes (nome_completo, email, login, senha_hash, tipo_usuario, status, data_criacao) 
+       VALUES (?, ?, ?, ?, ?, 'pendente', CURRENT_TIMESTAMP)`,
+      [nome, email, login, senhaHash, tipoUsuario]
     );
 
     const insertResult = result as any;
