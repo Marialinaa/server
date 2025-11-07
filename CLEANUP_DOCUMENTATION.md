@@ -89,6 +89,25 @@ O histórico completo do Git foi preservado, incluindo todos os commits anterior
 
 A pasta original `aura-hubb` foi mantida temporariamente como backup caso seja necessário recuperar algum arquivo específico.
 
+### 🔧 Build Scripts Corrigidos
+
+**Problemas resolvidos:**
+- ❌ **TypeScript --verbose flag**: Removido flag `--verbose` incompatível 
+- ❌ **Comandos Linux/Mac**: Substituídos `rm -rf`, `ls -la` por alternativas cross-platform
+- ❌ **Windows compatibility**: Scripts agora funcionam em Windows e Linux
+- ✅ **rimraf**: Adicionado para exclusão de arquivos multiplataforma
+- ✅ **Build success**: TypeScript compila sem erros
+
+**Scripts atualizados:**
+```json
+{
+  "build": "echo Starting TypeScript build... && npm run clean-dist && npx tsc --skipLibCheck && echo Build completed successfully!",
+  "clean-dist": "rimraf dist",
+  "postbuild": "echo TypeScript compilation finished && dir dist 2>nul || echo No dist directory found"
+}
+```
+
 **Status:** ✅ Limpeza completa realizada com sucesso
+**Status:** ✅ Build scripts corrigidos e funcionando
 **Repositório:** https://github.com/Marialinaa/server.git
 **Branch:** main
