@@ -118,16 +118,16 @@ const UserModel = {
     try {
       // ✅ Obter pool de forma segura
       const pool = await DatabaseConnection.getInstance();
+      console.log('🔍 [UserModel.create] Pool obtido com sucesso');
 
-      // Remover 'status' pois não existe na tabela usuarios
-      const fields = ['nome_completo','email','login','senha_hash','tipo_usuario','data_criacao'];
+      // Usar apenas campos que existem na tabela (sem data_criacao que pode não existir)
+      const fields = ['nome_completo','email','login','senha_hash','tipo_usuario'];
       const values = [
         data.nome_completo ?? null,
         data.email ?? null,
         data.login ?? null,
         data.senha_hash ?? null,
-        data.tipo_usuario ?? null,
-        new Date()
+        data.tipo_usuario ?? null
       ];
       
       const placeholders = fields.map(() => '?').join(',');
@@ -137,10 +137,21 @@ const UserModel = {
       console.log('🔍 [UserModel.create] Values:', values);
       
       const [result]: any = await pool.execute(sql, values);
+      console.log('🔍 [UserModel.create] Result:', result);
+      
       const insertId = result.insertId || (result as any).insert_id;
-      return { id: insertId, ...data };
+      console.log('🔍 [UserModel.create] Insert ID:', insertId);
+      
+      if (!insertId) {
+        throw new Error('Falha ao obter ID do usuário inserido');
+      }
+      
+      const createdUser = { id: insertId, ...data };
+      console.log('✅ [UserModel.create] Usuário criado com sucesso:', createdUser);
+      
+      return createdUser;
     } catch (error) {
-      console.error('UserModel.create error', error);
+      console.error('❌ [UserModel.create] Erro completo:', error);
       throw error;
     }
   }
