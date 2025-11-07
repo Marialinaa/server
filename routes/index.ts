@@ -17,6 +17,17 @@ router.get('/test', (_req, res) => {
   });
 });
 
+// Rota de teste para redirectTo
+router.post('/test-redirect', (_req, res) => {
+  res.json({
+    success: true,
+    message: 'Teste de redirectTo',
+    redirectTo: '/admin',
+    testField: 'TESTE_FUNCIONANDO',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Rota que retorna configuração útil para clientes em desenvolvimento
 // Detecta o IP local da máquina para facilitar o uso do frontend em outros dispositivos na mesma rede
 router.get('/config', (_req, res) => {
