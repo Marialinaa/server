@@ -30,12 +30,33 @@ router.post('/test-redirect', (_req, res) => {
 
 // Rota de teste para registro
 router.post('/test-register', (req, res) => {
+  console.log('📋 [TEST-REGISTER] Requisição recebida:', req.body);
   res.json({
     success: true,
     message: 'Teste de registro funcionando',
     body: req.body,
     timestamp: new Date().toISOString()
   });
+});
+
+// Teste simplificado de auth/register
+router.post('/simple-register', async (req, res) => {
+  try {
+    console.log('🧪 [SIMPLE-REGISTER] Iniciando teste simples...');
+    console.log('📋 [SIMPLE-REGISTER] Body:', req.body);
+    
+    res.json({
+      success: true,
+      message: 'Função de registro simplificada funcionando',
+      receivedData: req.body
+    });
+  } catch (error: any) {
+    console.error('❌ [SIMPLE-REGISTER] Erro:', error);
+    res.status(500).json({
+      success: false,
+      message: `Erro: ${error.message}`
+    });
+  }
 });
 
 // Rota que retorna configuração útil para clientes em desenvolvimento
